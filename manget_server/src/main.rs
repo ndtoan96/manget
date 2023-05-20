@@ -1,10 +1,10 @@
-use actix_files::NamedFile;
-use actix_web::http::header::ContentDisposition;
+use actix_web::http::header;
 use actix_web::{middleware::Logger, post, App, HttpServer};
-use actix_web::{web, ResponseError};
+use actix_web::{web, HttpResponse, ResponseError};
 use manget::manga;
 use manget::manga::ChapterError;
 use serde::Deserialize;
+use std::io::Read;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -24,11 +24,25 @@ enum WrapperError {
 impl ResponseError for WrapperError {}
 
 #[post("/download")]
-async fn download(json: web::Json<DownloadRequest>) -> Result<NamedFile, WrapperError> {
+async fn download(json: web::Json<DownloadRequest>) -> Result<HttpResponse, WrapperError> {
     let (file_name, file_path) = download_chapter_from_url(&json.url).await?;
-    Ok(NamedFile::open_async(file_path)
-        .await?
-        .set_content_disposition(ContentDisposition::attachment(file_name)))
+    let mut data = Vec::new();
+
+    // load file to local variable and delete file on disk
+    std::fs::File::open(&file_path)?.read_to_end(&mut data)?;
+    let _ = std::fs::remove_file(&file_path);
+    if let Some(p) = file_path.parent() {
+        let _ = std::fs::remove_dir(p);
+    }
+
+    // return the data
+    Ok(HttpResponse::Ok()
+        .content_type("application/octet-stream")
+        .append_header(header::ContentDisposition {
+            disposition: header::DispositionType::Attachment,
+            parameters: vec![header::DispositionParam::Filename(file_name)],
+        })
+        .body(data))
 }
 
 #[actix_web::main]

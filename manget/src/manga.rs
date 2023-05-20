@@ -105,7 +105,7 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
     if let Some(p) = zip_path.parent() {
         fs::create_dir_all(p)?;
     }
-    info!("Compressing...");
+    info!("Compressing to {}", zip_path.display());
     zip_folder(&outdir, &zip_path)?;
     let _ = fs::remove_dir_all(outdir);
     info!("Done.");

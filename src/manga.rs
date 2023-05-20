@@ -63,11 +63,8 @@ pub async fn download_chapter<P: Into<PathBuf>>(
     let mut failed_items = Vec::new();
 
     for result in download(&options).await {
-        match result {
-            Err(DownloadError::RequestError { item, source: _ }) => {
-                failed_items.push(item);
-            }
-            _ => (),
+        if let Err(DownloadError::RequestError { item, source: _ }) = result {
+            failed_items.push(item);
         }
     }
 

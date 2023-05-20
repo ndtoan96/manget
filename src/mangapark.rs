@@ -96,7 +96,7 @@ fn get_title_and_chapter_name(html: &str) -> (Option<String>, Option<String>) {
 fn get_chapter_download_info(html: &str) -> Result<Vec<DownloadItem>> {
     let pattern = Regex::new(r#"\{"httpLis".*?\}"#).unwrap();
     let download_info_raw = pattern
-        .find(&html)
+        .find(html)
         .ok_or(MangaParkError::ParseError)?
         .as_str();
     let download_info: ChapterDownloadInfo =

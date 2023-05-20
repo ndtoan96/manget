@@ -10,7 +10,6 @@ authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 actix-files = "0.6.2"
 actix-web = "4.3.1"
 anyhow = "1.0.71"
-axum = "0.6.18"
 clap = { version = "4.3.0", features = ["derive"] }
 futures = { version = "0.3.28", features = ["futures-executor"] }
 html-escape = "0.2.13"

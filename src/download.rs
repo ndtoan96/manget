@@ -38,7 +38,7 @@ pub struct DownloadSpeedLimit {
     duration: Duration,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DownloadOptions {
     items: Vec<DownloadItem>,
     limit_speed: Option<DownloadSpeedLimit>,
@@ -73,11 +73,7 @@ impl DownloadSpeedLimit {
 
 impl DownloadOptions {
     pub fn new() -> Self {
-        Self {
-            items: Vec::new(),
-            limit_speed: None,
-            path: PathBuf::from("."),
-        }
+        Self::default()
     }
 
     pub fn add_url(&mut self, url: &str) {
@@ -146,7 +142,7 @@ async fn download_chunk(
     let downloads: Vec<_> = items
         .into_iter()
         .map(|item| {
-            download_one_url(&item, path).then(|result| async {
+            download_one_url(item, path).then(|result| async {
                 match &result {
                     Ok(p) => info!("Downloaded: {} -> {}", item.url(), p.display()),
                     Err(e) => error!("{e}"),

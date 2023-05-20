@@ -135,7 +135,7 @@ mod test {
             get_title_and_chapter_name(&html),
             (
                 Some(String::from("Mato Seihei no Slave")),
-                Some(String::from("Vol.13 106")),
+                Some(String::from("Vol.13 Ch.106")),
             )
         );
 
@@ -151,7 +151,7 @@ mod test {
             get_title_and_chapter_name(&html),
             (
                 Some(String::from("Koi Shita no de, Haishin Shite Mita")),
-                Some(String::from("057")),
+                Some(String::from("Ch.057")),
             )
         );
     }

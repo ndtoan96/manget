@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use log::LevelFilter;
-use manget::manga::{download_chapter, generate_chapter_full_name, get_chapter, download_chapter_as_zip};
+use manget::manga::{
+    download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
+};
 use reqwest::Url;
 use simple_logger::SimpleLogger;
 
@@ -29,10 +31,17 @@ async fn main() {
     match get_chapter(args.url.clone()).await {
         Some(chapter) => {
             if args.cbz {
-                if let Err(e) = download_chapter_as_zip(chapter, args.out_dir) {
+                if let Err(e) = download_chapter_as_cbz(
+                    &chapter,
+                    args.out_dir.map(|p| {
+                        p.join(generate_chapter_full_name(&chapter))
+                            .with_extension("cbz")
+                    }),
+                )
+                .await
+                {
                     eprintln!("{e}");
                 }
-
             } else if let Err(e) = download_chapter(
                 &chapter,
                 args.out_dir

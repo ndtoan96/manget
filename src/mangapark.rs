@@ -39,7 +39,7 @@ impl MangaParkChapter {
             .error_for_status()?
             .text()
             .await?;
-        let download_items = get_chapter_download_info(&html).await?;
+        let download_items = get_chapter_download_info(&html)?;
         let (title, chapter) = get_title_and_chapter_name(&html);
         match title {
             Some(t) => Ok(Self {
@@ -93,7 +93,7 @@ fn get_title_and_chapter_name(html: &str) -> (Option<String>, Option<String>) {
     }
 }
 
-async fn get_chapter_download_info(html: &str) -> Result<Vec<DownloadItem>> {
+fn get_chapter_download_info(html: &str) -> Result<Vec<DownloadItem>> {
     let pattern = Regex::new(r#"\{"httpLis".*?\}"#).unwrap();
     let download_info_raw = pattern
         .find(&html)

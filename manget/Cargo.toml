@@ -1,0 +1,22 @@
+[package]
+name = "manget"
+version = "0.1.0"
+edition = "2021"
+authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = { version = "0.3.28", features = ["futures-executor"] }
+html-escape = "0.2.13"
+log = "0.4.17"
+mime = "0.3.17"
+regex = "1.8.1"
+reqwest = "0.11.18"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+simple_logger = "4.1.0"
+tempfile = "3.5.0"
+thiserror = "1.0.40"
+tokio = { version = "1.28.1", features = ["macros", "rt-multi-thread", "time", "fs"] }
+zip = "0.6.6"

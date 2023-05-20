@@ -5,7 +5,6 @@ use log::LevelFilter;
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
 };
-use reqwest::Url;
 use simple_logger::SimpleLogger;
 
 /// Manga download tool
@@ -16,7 +15,7 @@ struct Args {
     out_dir: Option<PathBuf>,
     #[arg(long)]
     cbz: bool,
-    url: Url,
+    url: String,
 }
 
 #[tokio::main]

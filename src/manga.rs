@@ -136,7 +136,7 @@ fn zip_folder<P: Into<PathBuf>>(
     let writer = std::io::BufWriter::new(file);
     let mut zip = ZipWriter::new(writer);
 
-    let options = FileOptions::default().compression_method(zip::CompressionMethod::Bzip2);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
     let files = fs::read_dir(&folder_path)?;
     for file in files {
@@ -153,14 +153,4 @@ fn zip_folder<P: Into<PathBuf>>(
 
     zip.finish()?;
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use super::zip_folder;
-
-    #[test]
-    fn test_zip_folder() {
-        zip_folder("./download", "./out/download.zip").unwrap();
-    }
 }

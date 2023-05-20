@@ -1,6 +1,6 @@
 use actix_files::NamedFile;
 use actix_web::http::header::ContentDisposition;
-use actix_web::{get, middleware::Logger, App, HttpServer};
+use actix_web::{middleware::Logger, post, App, HttpServer};
 use actix_web::{web, ResponseError};
 use manget::manga;
 use manget::manga::ChapterError;
@@ -23,7 +23,7 @@ enum WrapperError {
 
 impl ResponseError for WrapperError {}
 
-#[get("/download")]
+#[post("/download")]
 async fn download(json: web::Json<DownloadRequest>) -> Result<NamedFile, WrapperError> {
     let (file_name, file_path) = download_chapter_from_url(&json.url).await?;
     Ok(NamedFile::open_async(file_path)

@@ -2,11 +2,14 @@
 name = "manget"
 version = "0.1.0"
 edition = "2021"
+author = "Nguyen Duc Toan <ntoan96@gmail.com>"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = { version = "4.3.0", features = ["derive"] }
 futures = { version = "0.3.28", features = ["futures-executor"] }
+html-escape = "0.2.13"
 log = "0.4.17"
 mime = "0.3.17"
 regex = "1.8.1"

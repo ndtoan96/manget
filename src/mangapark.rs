@@ -1,7 +1,11 @@
 use regex::Regex;
+use reqwest::IntoUrl;
 use serde::Deserialize;
 
-use crate::{download::{DownloadItem, DownloadSpeedLimit}, manga::Chapter};
+use crate::{
+    download::{DownloadItem, DownloadSpeedLimit},
+    manga::Chapter,
+};
 
 type Result<T> = std::result::Result<T, MangaParkError>;
 
@@ -28,13 +32,18 @@ struct ChapterDownloadInfo {
 }
 
 impl MangaParkChapter {
-    pub async fn from(url: &str) -> Result<Self> {
-        let html = reqwest::get(url).await?.error_for_status()?.text().await?;
+    pub async fn from(url: impl IntoUrl) -> Result<Self> {
+        let url = url.into_url()?;
+        let html = reqwest::get(url.clone())
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
         let download_items = get_chapter_download_info(&html).await?;
         let (title, chapter) = get_title_and_chapter_name(&html);
         match title {
             Some(t) => Ok(Self {
-                url: url.to_string(),
+                url: url.as_str().to_string(),
                 title: t,
                 chapter,
                 pages: download_items,
@@ -74,9 +83,12 @@ fn get_title_and_chapter_name(html: &str) -> (Option<String>, Option<String>) {
     match pattern.captures(html) {
         None => (None, None),
         Some(cap) => (
-            cap.name("title").map(|x| x.as_str().to_string()),
+            cap.name("title")
+                .map(|x| x.as_str())
+                .map(|x| html_escape::decode_html_entities(x).to_string()),
             cap.name("chapter")
-                .map(|x| x.as_str().to_string().replace("Ch.", "")),
+                .map(|x| x.as_str())
+                .map(|x| html_escape::decode_html_entities(x).to_string()),
         ),
     }
 }

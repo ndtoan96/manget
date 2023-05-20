@@ -1,15 +1,48 @@
+use std::path::PathBuf;
+
+use clap::Parser;
 use log::LevelFilter;
-use manget::{manga::download_chapter, mangapark};
+use manget::manga::{download_chapter, generate_chapter_full_name, get_chapter, download_chapter_as_zip};
+use reqwest::Url;
 use simple_logger::SimpleLogger;
+
+/// Manga download tool
+#[derive(Debug, Parser)]
+#[command(author, version, about)]
+struct Args {
+    #[arg(short, long)]
+    out_dir: Option<PathBuf>,
+    #[arg(long)]
+    cbz: bool,
+    url: Url,
+}
 
 #[tokio::main]
 async fn main() {
-    SimpleLogger::new().with_level(LevelFilter::Info).init().unwrap();
-    match mangapark::MangaParkChapter::from("https://mangapark.net/title/74602-edens-zero/7974708-en-ch.238").await {
-        Ok(chapter) => if let Err(e) = download_chapter(&chapter, None).await {
-            eprintln!("{e}");
-        },
-        Err(e) => eprintln!("{e}"),
+    SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .init()
+        .unwrap();
+
+    let args = Args::parse();
+
+    match get_chapter(args.url.clone()).await {
+        Some(chapter) => {
+            if args.cbz {
+                if let Err(e) = download_chapter_as_zip(chapter, args.out_dir) {
+                    eprintln!("{e}");
+                }
+
+            } else if let Err(e) = download_chapter(
+                &chapter,
+                args.out_dir
+                    .map(|p| p.join(generate_chapter_full_name(&chapter))),
+            )
+            .await
+            {
+                eprintln!("{e}");
+            }
+        }
+        None => eprintln!("Cannot get chapter info from {}", args.url),
     }
-    
 }

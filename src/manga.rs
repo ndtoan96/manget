@@ -1,10 +1,14 @@
 use log::warn;
+use reqwest::IntoUrl;
 use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
 
-use crate::download::{download, DownloadError, DownloadItem, DownloadOptions, DownloadSpeedLimit};
+use crate::{
+    download::{download, DownloadError, DownloadItem, DownloadOptions, DownloadSpeedLimit},
+    mangapark,
+};
 
 pub trait Chapter {
     fn url(&self) -> &str;
@@ -25,13 +29,13 @@ pub enum ChapterDownloadError {
     PagesDownloadError { sources: Vec<DownloadError> },
 }
 
-pub async fn download_chapter(
+pub async fn download_chapter<P: Into<PathBuf>>(
     chapter: &impl Chapter,
-    path: Option<&Path>,
+    path: Option<P>,
 ) -> Result<(), ChapterDownloadError> {
     let download_path = path
-        .map(|x| x.to_path_buf())
-        .unwrap_or(Path::new(".").join(&generate_folder_name(chapter)));
+        .map(|x| x.into())
+        .unwrap_or(Path::new(".").join(&generate_chapter_full_name(chapter)));
     let mut options = DownloadOptions::new()
         .set_path(&download_path)
         .map_err(|e| ChapterDownloadError::PathError {
@@ -78,14 +82,25 @@ pub async fn download_chapter(
     }
 }
 
-pub fn download_chapter_as_zip(chapter: impl Chapter, zip_path: Option<&Path>) {
+pub fn download_chapter_as_zip<P: Into<PathBuf>>(
+    chapter: impl Chapter,
+    zip_path: Option<P>,
+) -> Result<(), ChapterDownloadError> {
     todo!()
 }
 
-fn generate_folder_name(chapter: &impl Chapter) -> String {
+pub fn generate_chapter_full_name(chapter: &impl Chapter) -> String {
     format!(
         "{} - {}",
         chapter.title(),
         chapter.chapter_name().unwrap_or("chapter 0")
     )
+}
+
+pub async fn get_chapter(url: impl IntoUrl) -> Option<impl Chapter> {
+    let url = url.into_url().ok()?;
+    match url.domain() {
+        Some("mangapark.net") => mangapark::MangaParkChapter::from(url).await.ok(),
+        _ => None,
+    }
 }

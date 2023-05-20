@@ -1,5 +1,8 @@
-use std::{path::Path, time::Duration};
 use log::warn;
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use crate::download::{download, DownloadError, DownloadItem, DownloadOptions, DownloadSpeedLimit};
 
@@ -11,22 +14,30 @@ pub trait Chapter {
     fn server_speed_limit(&self) -> Option<DownloadSpeedLimit>;
 }
 
-// #[derive(Debug, thiserror::Error)]
-// enum ChapterDownloadError {
-//     #[error("cannot download to {0}")]
-//     PathError(PathBuf),
-//     #[error("failed to download some pages")]
-//     PagesDownloadError {
-//         items: Vec<DownloadItem>
-//     }
-// }
+#[derive(Debug, thiserror::Error)]
+pub enum ChapterDownloadError {
+    #[error("cannot download to {path}")]
+    PathError {
+        path: PathBuf,
+        source: DownloadError,
+    },
+    #[error("failed to download some pages")]
+    PagesDownloadError { sources: Vec<DownloadError> },
+}
 
 pub async fn download_chapter(
     chapter: &impl Chapter,
     path: Option<&Path>,
-) -> Result<(), DownloadError> {
+) -> Result<(), ChapterDownloadError> {
+    let download_path = path
+        .map(|x| x.to_path_buf())
+        .unwrap_or(Path::new(".").join(&generate_folder_name(chapter)));
     let mut options = DownloadOptions::new()
-        .set_path(path.unwrap_or(&Path::new(".").join(&generate_folder_name(chapter))))?;
+        .set_path(&download_path)
+        .map_err(|e| ChapterDownloadError::PathError {
+            path: download_path.to_path_buf(),
+            source: e,
+        })?;
     if let Some(limit) = chapter.server_speed_limit() {
         options.set_limit_speed(limit);
     }
@@ -54,7 +65,13 @@ pub async fn download_chapter(
         if results.iter().all(|x| x.is_ok()) {
             Ok(())
         } else {
-            Err(DownloadError::InvalidUrl("a".to_string()))
+            let mut sources = Vec::new();
+            for result in results {
+                if let Err(e) = result {
+                    sources.push(e);
+                }
+            }
+            Err(ChapterDownloadError::PagesDownloadError { sources })
         }
     } else {
         Ok(())

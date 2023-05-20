@@ -1,10 +1,10 @@
+use log::{error, info};
 use std::{
     fs,
     io::{self, Cursor},
     path::{Path, PathBuf},
     time::Duration,
 };
-use log::{error, info};
 
 use futures::FutureExt;
 use reqwest::{header::CONTENT_TYPE, Response};

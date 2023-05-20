@@ -29,7 +29,7 @@ async fn main() {
     let args = Args::parse();
 
     match get_chapter(args.url.clone()).await {
-        Some(chapter) => {
+        Ok(chapter) => {
             if args.cbz {
                 if let Err(e) = download_chapter_as_cbz(
                     &chapter,
@@ -52,6 +52,6 @@ async fn main() {
                 eprintln!("{e}");
             }
         }
-        None => eprintln!("Cannot get chapter info from {}", args.url),
+        Err(e) => eprintln!("{e}"),
     }
 }

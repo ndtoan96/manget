@@ -32,7 +32,7 @@ struct ChapterDownloadInfo {
 }
 
 impl MangaParkChapter {
-    pub async fn from(url: impl IntoUrl) -> Result<Self> {
+    pub async fn from_url(url: impl IntoUrl) -> Result<Self> {
         let url = url.into_url()?;
         let html = reqwest::get(url.clone())
             .await?
@@ -54,16 +54,16 @@ impl MangaParkChapter {
 }
 
 impl Chapter for MangaParkChapter {
-    fn url(&self) -> &str {
-        &self.url
+    fn url(&self) -> String {
+        self.url.to_string()
     }
 
-    fn title(&self) -> &str {
-        &self.title
+    fn title(&self) -> String {
+        self.title.to_string()
     }
 
-    fn chapter_name(&self) -> Option<&str> {
-        self.chapter.as_deref()
+    fn chapter_name(&self) -> String {
+        self.chapter.as_deref().unwrap_or("chapter 0").to_string()
     }
 
     fn pages_download_info(&self) -> &Vec<DownloadItem> {

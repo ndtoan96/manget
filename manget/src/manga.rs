@@ -11,13 +11,13 @@ use zip::ZipWriter;
 
 use crate::{
     download::{download, DownloadError, DownloadItem, DownloadOptions, DownloadSpeedLimit},
-    mangapark,
+    mangapark, mangadex,
 };
 
 pub trait Chapter {
-    fn url(&self) -> &str;
-    fn title(&self) -> &str;
-    fn chapter_name(&self) -> Option<&str>;
+    fn url(&self) -> String;
+    fn title(&self) -> String;
+    fn chapter_name(&self) -> String;
     fn pages_download_info(&self) -> &Vec<DownloadItem>;
     fn server_speed_limit(&self) -> Option<DownloadSpeedLimit>;
 }
@@ -37,28 +37,31 @@ pub enum ChapterError {
     InvalidUrl(String),
     #[error(transparent)]
     MangaParkError(#[from] mangapark::MangaParkError),
+    #[error(transparent)]
+    MangadexError(#[from] mangadex::MangadexError),
     #[error("site '{0}' is not supported")]
     SiteNotSupported(String),
 }
 
 pub async fn download_chapter<P: Into<PathBuf>>(
-    chapter: &impl Chapter,
+    chapter: impl AsRef<dyn Chapter>,
     path: Option<P>,
 ) -> Result<PathBuf, ChapterError> {
+    // let chapter = chapter.as_ref();
     let download_path = path
         .map(|x| x.into())
-        .unwrap_or(Path::new(".").join(&generate_chapter_full_name(chapter)));
+        .unwrap_or(Path::new(".").join(&generate_chapter_full_name(&chapter)));
     let mut options = DownloadOptions::new()
         .set_path(&download_path)
         .map_err(|e| ChapterError::PathError {
             path: download_path.to_path_buf(),
             source: e,
         })?;
-    if let Some(limit) = chapter.server_speed_limit() {
+    if let Some(limit) = chapter.as_ref().server_speed_limit() {
         options.set_limit_speed(limit);
     }
 
-    options.add_download_items(chapter.pages_download_info());
+    options.add_download_items(chapter.as_ref().pages_download_info());
 
     let mut failed_items = Vec::new();
 
@@ -92,14 +95,14 @@ pub async fn download_chapter<P: Into<PathBuf>>(
 }
 
 pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
-    chapter: &impl Chapter,
+    chapter: impl AsRef<dyn Chapter>,
     zip_path: Option<P>,
 ) -> Result<PathBuf, ChapterError> {
     let tempdir = tempfile::tempdir()?;
-    let outdir = download_chapter(chapter, Some(tempdir.into_path())).await?;
+    let outdir = download_chapter(&chapter, Some(tempdir.into_path())).await?;
     let zip_path = zip_path.map(|p| p.into()).unwrap_or(
         PathBuf::from(".")
-            .join(generate_chapter_full_name(chapter))
+            .join(generate_chapter_full_name(&chapter))
             .with_extension("cbz"),
     );
     if let Some(p) = zip_path.parent() {
@@ -112,23 +115,25 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
     Ok(zip_path)
 }
 
-pub fn generate_chapter_full_name(chapter: &impl Chapter) -> String {
+pub fn generate_chapter_full_name(chapter: impl AsRef<dyn Chapter>) -> String {
+    let chapter = chapter.as_ref();
     format!(
         "{} - {}",
         chapter.title(),
-        chapter.chapter_name().unwrap_or("chapter 0")
+        chapter.chapter_name()
     )
 }
 
 pub async fn get_chapter(
     url: impl IntoUrl + Display + Clone,
-) -> Result<impl Chapter, ChapterError> {
+) -> Result<Box<dyn Chapter>, ChapterError> {
     let url = url
         .clone()
         .into_url()
         .map_err(|_| ChapterError::InvalidUrl(url.to_string()))?;
     match url.domain() {
-        Some("mangapark.net") => Ok(mangapark::MangaParkChapter::from(url).await?),
+        Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
+        Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some(x) => Err(ChapterError::SiteNotSupported(x.to_string())),
         None => Err(ChapterError::InvalidUrl(url.to_string())),
     }

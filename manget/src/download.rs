@@ -6,7 +6,6 @@ use std::{
     time::Duration,
 };
 
-use futures::FutureExt;
 use reqwest::{header::CONTENT_TYPE, Response};
 
 type Result<T> = std::result::Result<T, DownloadError>;
@@ -139,18 +138,17 @@ async fn download_chunk(
     items: impl IntoIterator<Item = &DownloadItem>,
     path: &Path,
 ) -> Vec<Result<PathBuf>> {
-    let downloads: Vec<_> = items
-        .into_iter()
-        .map(|item| {
-            download_one_url(item, path).then(|result| async {
-                match &result {
-                    Ok(p) => info!("Downloaded: {} -> {}", item.url(), p.display()),
-                    Err(e) => error!("{e}"),
-                }
-                result
-            })
-        })
-        .collect();
+    let mut downloads = Vec::new();
+    for item in items {
+        downloads.push(async {
+            let result = download_one_url(item, path).await;
+            match &result {
+                Ok(p) => info!("Downloaded: {} -> {}", item.url(), p.display()),
+                Err(e) => error!("{e}"),
+            }
+            result
+        });
+    }
     futures::future::join_all(downloads).await
 }
 

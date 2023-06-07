@@ -11,7 +11,7 @@ use zip::ZipWriter;
 
 use crate::{
     download::{download, DownloadError, DownloadItem, DownloadOptions, DownloadSpeedLimit},
-    mangapark, mangadex,
+    mangadex, mangapark,
 };
 
 pub trait Chapter {
@@ -117,11 +117,7 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
 
 pub fn generate_chapter_full_name(chapter: impl AsRef<dyn Chapter>) -> String {
     let chapter = chapter.as_ref();
-    format!(
-        "{} - {}",
-        chapter.title(),
-        chapter.chapter_name()
-    )
+    sanitize_filename::sanitize(format!("{} - {}", chapter.title(), chapter.chapter_name()))
 }
 
 pub async fn get_chapter(

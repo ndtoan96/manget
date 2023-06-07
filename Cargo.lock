@@ -1080,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "manget"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "futures",
  "html-escape",
@@ -1088,6 +1088,7 @@ dependencies = [
  "mime",
  "regex",
  "reqwest",
+ "sanitize-filename",
  "serde",
  "serde_json",
  "simple_logger",
@@ -1099,10 +1100,10 @@ dependencies = [
 
 [[package]]
 name = "manget_cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
- "log",
+ "futures",
  "manget",
  "simple_logger",
  "tokio",
@@ -1488,6 +1489,16 @@ name = "ryu"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f91339c0467de62360649f8d3e185ca8de4224ff281f66000de5eb2a77a79041"
+
+[[package]]
+name = "sanitize-filename"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08c502bdb638f1396509467cb0580ef3b29aa2a45c5d43e5d84928241280296c"
+dependencies = [
+ "lazy_static",
+ "regex",
+]
 
 [[package]]
 name = "schannel"

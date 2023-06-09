@@ -2,10 +2,7 @@ use regex::Regex;
 use reqwest::IntoUrl;
 use serde::Deserialize;
 
-use crate::{
-    download::{DownloadItem, DownloadSpeedLimit},
-    manga::Chapter,
-};
+use crate::{download::DownloadItem, manga::Chapter};
 
 type Result<T> = std::result::Result<T, MangaParkError>;
 
@@ -68,10 +65,6 @@ impl Chapter for MangaParkChapter {
 
     fn pages_download_info(&self) -> &Vec<DownloadItem> {
         &self.pages
-    }
-
-    fn server_speed_limit(&self) -> Option<DownloadSpeedLimit> {
-        None
     }
 }
 

@@ -10,7 +10,7 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use crate::{
-    download::{download, DownloadError, DownloadItem, DownloadOptions, DownloadSpeedLimit},
+    download::{download, DownloadError, DownloadItem, DownloadOptions},
     mangadex, mangapark,
 };
 
@@ -19,7 +19,6 @@ pub trait Chapter {
     fn title(&self) -> String;
     fn chapter_name(&self) -> String;
     fn pages_download_info(&self) -> &Vec<DownloadItem>;
-    fn server_speed_limit(&self) -> Option<DownloadSpeedLimit>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -57,9 +56,6 @@ pub async fn download_chapter<P: Into<PathBuf>>(
             path: download_path.to_path_buf(),
             source: e,
         })?;
-    if let Some(limit) = chapter.as_ref().server_speed_limit() {
-        options.set_limit_speed(limit);
-    }
 
     options.add_download_items(chapter.as_ref().pages_download_info());
 

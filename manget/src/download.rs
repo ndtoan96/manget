@@ -3,7 +3,6 @@ use std::{
     fs,
     io::{self, Cursor},
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use futures::FutureExt;
@@ -32,16 +31,9 @@ pub struct DownloadItem {
     name: Option<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct DownloadSpeedLimit {
-    num_items: usize,
-    duration: Duration,
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct DownloadOptions {
     items: Vec<DownloadItem>,
-    limit_speed: Option<DownloadSpeedLimit>,
     path: PathBuf,
 }
 
@@ -59,15 +51,6 @@ impl DownloadItem {
 
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
-    }
-}
-
-impl DownloadSpeedLimit {
-    pub fn new(num_items: usize, every: Duration) -> Self {
-        Self {
-            num_items,
-            duration: every,
-        }
     }
 }
 
@@ -103,10 +86,6 @@ impl DownloadOptions {
         self.items = Vec::new();
     }
 
-    pub fn set_limit_speed(&mut self, limit: DownloadSpeedLimit) {
-        self.limit_speed = Some(limit);
-    }
-
     pub fn set_path(mut self, path: impl AsRef<Path>) -> Result<Self> {
         fs::create_dir_all(&path)?;
         self.path = path.as_ref().to_owned();
@@ -115,30 +94,8 @@ impl DownloadOptions {
 }
 
 pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
-    match options.limit_speed {
-        None => download_chunk(&options.items, &options.path).await,
-        Some(DownloadSpeedLimit {
-            num_items,
-            duration,
-        }) => {
-            let mut downloads = Vec::new();
-            let mut chunks = options.items.chunks(num_items).peekable();
-            while let Some(chunk) = chunks.next() {
-                let mut subdownloads = download_chunk(chunk, &options.path).await;
-                downloads.append(&mut subdownloads);
-                if chunks.peek().is_some() {
-                    tokio::time::sleep(duration).await;
-                }
-            }
-            downloads
-        }
-    }
-}
-
-async fn download_chunk(
-    items: impl IntoIterator<Item = &DownloadItem>,
-    path: &Path,
-) -> Vec<Result<PathBuf>> {
+    let items = &options.items;
+    let path = &options.path;
     let downloads: Vec<_> = items
         .into_iter()
         .map(|item| {

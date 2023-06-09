@@ -187,8 +187,4 @@ impl Chapter for MangadexChapter {
     fn pages_download_info(&self) -> &Vec<DownloadItem> {
         &self.pages
     }
-
-    fn server_speed_limit(&self) -> Option<crate::download::DownloadSpeedLimit> {
-        None
-    }
 }

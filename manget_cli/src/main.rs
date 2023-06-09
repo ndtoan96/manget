@@ -4,7 +4,6 @@ use clap::Parser;
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
 };
-use simple_logger::SimpleLogger;
 
 /// Manga download tool
 #[derive(Debug, Parser)]
@@ -26,7 +25,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     match (args.url, args.file) {
         (Some(url), _) => {
-            SimpleLogger::new().init().unwrap();
+            env_logger::init();
             download_one(&url, &args.out_dir, args.cbz).await?;
         }
         (_, Some(file)) => {

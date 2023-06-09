@@ -170,11 +170,11 @@ impl Chapter for MangadexChapter {
         self.url.clone()
     }
 
-    fn title(&self) -> String {
+    fn manga(&self) -> String {
         self.manga_title.clone()
     }
 
-    fn chapter_name(&self) -> String {
+    fn chapter(&self) -> String {
         let chapter = self.chapter.clone().unwrap_or(String::from("0"));
         match (self.volume.as_ref(), self.chapter_title.as_ref()) {
             (Some(v), Some(t)) => format!("vol {v} chap {chapter} - {t}"),

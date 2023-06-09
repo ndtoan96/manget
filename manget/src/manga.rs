@@ -15,9 +15,13 @@ use crate::{
 };
 
 pub trait Chapter {
+    /// Get the URL of the chapter
     fn url(&self) -> String;
-    fn title(&self) -> String;
-    fn chapter_name(&self) -> String;
+    /// Get the name of the manga to which this chapter belongs
+    fn manga(&self) -> String;
+    /// Get the chapter number, ex: "vol 7 chap 99" or "chap 2". The format depends on each site.
+    fn chapter(&self) -> String;
+    /// Get a list of download items (page url and corresponding name) 
     fn pages_download_info(&self) -> &Vec<DownloadItem>;
 }
 
@@ -113,7 +117,7 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
 
 pub fn generate_chapter_full_name(chapter: impl AsRef<dyn Chapter>) -> String {
     let chapter = chapter.as_ref();
-    sanitize_filename::sanitize(format!("{} - {}", chapter.title(), chapter.chapter_name()))
+    sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()))
 }
 
 pub async fn get_chapter(

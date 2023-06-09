@@ -16,7 +16,7 @@ pub enum MangaParkError {
 
 pub struct MangaParkChapter {
     url: String,
-    title: String,
+    manga_title: String,
     chapter: Option<String>,
     pages: Vec<DownloadItem>,
 }
@@ -41,7 +41,7 @@ impl MangaParkChapter {
         match title {
             Some(t) => Ok(Self {
                 url: url.as_str().to_string(),
-                title: t,
+                manga_title: t,
                 chapter,
                 pages: download_items,
             }),
@@ -55,11 +55,11 @@ impl Chapter for MangaParkChapter {
         self.url.to_string()
     }
 
-    fn title(&self) -> String {
-        self.title.to_string()
+    fn manga(&self) -> String {
+        self.manga_title.to_string()
     }
 
-    fn chapter_name(&self) -> String {
+    fn chapter(&self) -> String {
         self.chapter.as_deref().unwrap_or("chapter 0").to_string()
     }
 

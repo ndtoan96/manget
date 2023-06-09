@@ -1,6 +1,6 @@
 [package]
 name = "manget"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 
@@ -14,6 +14,7 @@ mime = "0.3.17"
 regex = "1.8.1"
 reqwest = "0.11.18"
 sanitize-filename = "0.4.0"
+scraper = "0.16.0"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 simple_logger = "4.1.0"

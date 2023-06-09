@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.3.1"
-manget = { version = "0.1.0", path = "../manget" }
+manget = { version = "^0.2.0", path = "../manget" }
 serde = { version = "1.0.163", features = ["derive"] }
 tempfile = "3.5.0"
 thiserror = "1.0.40"

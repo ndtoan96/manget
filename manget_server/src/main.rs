@@ -48,7 +48,7 @@ async fn download(json: web::Json<DownloadRequest>) -> Result<HttpResponse, Wrap
 #[actix_web::main]
 async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
     HttpServer::new(|| App::new().wrap(Logger::default()).service(download))

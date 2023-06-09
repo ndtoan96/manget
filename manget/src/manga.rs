@@ -11,7 +11,7 @@ use zip::ZipWriter;
 
 use crate::{
     download::{download, DownloadError, DownloadItem, DownloadOptions},
-    mangadex, mangapark,
+    mangadex, mangapark, truyenqq,
 };
 
 pub trait Chapter {
@@ -21,8 +21,12 @@ pub trait Chapter {
     fn manga(&self) -> String;
     /// Get the chapter number, ex: "vol 7 chap 99" or "chap 2". The format depends on each site.
     fn chapter(&self) -> String;
-    /// Get a list of download items (page url and corresponding name) 
+    /// Get a list of download items (page url and corresponding name)
     fn pages_download_info(&self) -> &Vec<DownloadItem>;
+    /// Some site security requires the referer header in request
+    fn referer(&self) -> Option<String> {
+        None
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -42,6 +46,8 @@ pub enum ChapterError {
     MangaParkError(#[from] mangapark::MangaParkError),
     #[error(transparent)]
     MangadexError(#[from] mangadex::MangadexError),
+    #[error(transparent)]
+    TruyenqqError(#[from] truyenqq::TruyenqqError),
     #[error("site '{0}' is not supported")]
     SiteNotSupported(String),
 }
@@ -62,6 +68,9 @@ pub async fn download_chapter<P: Into<PathBuf>>(
         })?;
 
     options.add_download_items(chapter.as_ref().pages_download_info());
+    if let Some(r) = chapter.as_ref().referer() {
+        options.set_referer(&r);
+    }
 
     let mut failed_items = Vec::new();
 
@@ -130,6 +139,7 @@ pub async fn get_chapter(
     match url.domain() {
         Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
+        Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
         Some(x) => Err(ChapterError::SiteNotSupported(x.to_string())),
         None => Err(ChapterError::InvalidUrl(url.to_string())),
     }

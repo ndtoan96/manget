@@ -1,9 +1,10 @@
-use std::{error::Error, fs, path::PathBuf};
+use std::{error::Error, fs, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
 };
+use tower::{Service, ServiceBuilder, ServiceExt};
 
 /// Manga download tool
 #[derive(Debug, Parser)]
@@ -26,16 +27,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
     match (args.url, args.file) {
         (Some(url), _) => {
             env_logger::init();
-            download_one(&url, &args.out_dir, args.cbz).await?;
+            download_one(url, args.out_dir, args.cbz).await?;
         }
         (_, Some(file)) => {
             let content = fs::read_to_string(&file)?;
-            let all_result = futures::future::join_all(
-                content
-                    .lines()
-                    .map(|url| download_one(url, &args.out_dir, args.cbz)),
-            )
-            .await;
+
+            struct DownloadRequest {
+                url: String,
+                out_dir: Option<PathBuf>,
+                cbz: bool,
+            }
+
+            // Create a download service
+            let mut download_service =
+                ServiceBuilder::new().rate_limit(3, Duration::from_secs(5)).service_fn(
+                    |req: DownloadRequest| async move {
+                        download_one(req.url, req.out_dir, req.cbz).await
+                    },
+                );
+
+            let mut future_handles = Vec::new();
+            for url in content.lines() {
+                let handle = download_service.ready().await?.call(DownloadRequest {
+                    url: url.to_string(),
+                    out_dir: args.out_dir.clone(),
+                    cbz: args.cbz,
+                });
+                future_handles.push(handle);
+            }
+            let all_result = futures::future::join_all(future_handles).await;
             if let Some(r) = all_result.into_iter().find(|r| r.is_err()) {
                 return r;
             }
@@ -47,8 +67,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn download_one(
-    url: &str,
-    out_dir: &Option<PathBuf>,
+    url: String,
+    out_dir: Option<PathBuf>,
     cbz: bool,
 ) -> Result<(), Box<dyn Error>> {
     let chapter = get_chapter(url).await?;

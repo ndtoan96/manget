@@ -35,6 +35,7 @@ pub struct DownloadItem {
 pub struct DownloadOptions {
     items: Vec<DownloadItem>,
     path: PathBuf,
+    referer: Option<String>,
 }
 
 impl DownloadItem {
@@ -59,23 +60,27 @@ impl DownloadOptions {
         Self::default()
     }
 
-    pub fn add_url(&mut self, url: &str) {
+    pub fn add_url(&mut self, url: &str) -> &mut Self {
         self.items.push(DownloadItem {
             url: url.to_string(),
             name: None,
         });
+        self
     }
 
-    pub fn add_url_with_name(&mut self, url: &str, name: &str) {
+    pub fn add_url_with_name(&mut self, url: &str, name: &str) -> &mut Self {
         self.items.push(DownloadItem::new(url, Some(name)));
+        self
     }
 
-    pub fn add_download_item(&mut self, item: &DownloadItem) {
+    pub fn add_download_item(&mut self, item: &DownloadItem) -> &mut Self {
         self.items.push(item.clone());
+        self
     }
 
-    pub fn add_download_items<'a>(&mut self, items: impl IntoIterator<Item = &'a DownloadItem>) {
+    pub fn add_download_items<'a>(&mut self, items: impl IntoIterator<Item = &'a DownloadItem>) -> &mut Self {
         self.items.append(&mut items.into_iter().cloned().collect());
+        self
     }
 
     pub fn add_urls<'a>(mut self, urls: impl Iterator<Item = &'a str>) {
@@ -91,15 +96,21 @@ impl DownloadOptions {
         self.path = path.as_ref().to_owned();
         Ok(self)
     }
+
+    pub fn set_referer(&mut self, referer: &str) -> &mut Self {
+        self.referer = Some(referer.to_string());
+        self
+    }
 }
 
 pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
     let items = &options.items;
     let path = &options.path;
+    let referer = &options.referer;
     let downloads: Vec<_> = items
-        .into_iter()
+        .iter()
         .map(|item| {
-            download_one_url(item, path).then(|result| async {
+            download_one_url(item, path, referer).then(|result| async {
                 match &result {
                     Ok(p) => info!("Downloaded: {} -> {}", item.url(), p.display()),
                     Err(e) => error!("{e}"),
@@ -111,8 +122,13 @@ pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
     futures::future::join_all(downloads).await
 }
 
-async fn download_one_url(item: &DownloadItem, path: &Path) -> Result<PathBuf> {
-    let response = reqwest::get(&item.url)
+async fn download_one_url(item: &DownloadItem, path: &Path, referer: &Option<String>) -> Result<PathBuf> {
+    let client = reqwest::Client::new();
+    let mut request = client.get(&item.url);
+    if let Some(r) = referer {
+        request = request.header("referer", r);
+    }
+    let response = request.send()
         .await
         .map_err(|e| DownloadError::RequestError {
             item: item.clone(),

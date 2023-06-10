@@ -39,7 +39,7 @@ pub struct DownloadOptions {
 }
 
 impl DownloadItem {
-    pub fn new(url: &str, name: Option<&str>) -> Self {
+    pub fn new<'a, 'b>(url: &'a str, name: Option<&'b str>) -> Self {
         Self {
             url: url.to_string(),
             name: name.map(|x| x.to_string()),
@@ -78,7 +78,10 @@ impl DownloadOptions {
         self
     }
 
-    pub fn add_download_items<'a>(&mut self, items: impl IntoIterator<Item = &'a DownloadItem>) -> &mut Self {
+    pub fn add_download_items<'a>(
+        &mut self,
+        items: impl IntoIterator<Item = &'a DownloadItem>,
+    ) -> &mut Self {
         self.items.append(&mut items.into_iter().cloned().collect());
         self
     }
@@ -122,13 +125,18 @@ pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
     futures::future::join_all(downloads).await
 }
 
-async fn download_one_url(item: &DownloadItem, path: &Path, referer: &Option<String>) -> Result<PathBuf> {
+async fn download_one_url(
+    item: &DownloadItem,
+    path: &Path,
+    referer: &Option<String>,
+) -> Result<PathBuf> {
     let client = reqwest::Client::new();
     let mut request = client.get(&item.url);
     if let Some(r) = referer {
         request = request.header("referer", r);
     }
-    let response = request.send()
+    let response = request
+        .send()
         .await
         .map_err(|e| DownloadError::RequestError {
             item: item.clone(),

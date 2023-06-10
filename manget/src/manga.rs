@@ -1,3 +1,8 @@
+mod mangadex;
+mod mangapark;
+mod truyenqq;
+mod truyentranhtuan;
+
 use log::{info, warn};
 use reqwest::IntoUrl;
 use std::{
@@ -9,10 +14,7 @@ use std::{
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
-use crate::{
-    download::{download, DownloadError, DownloadItem, DownloadOptions},
-    mangadex, mangapark, truyenqq,
-};
+use crate::download::{download, DownloadError, DownloadItem, DownloadOptions};
 
 pub trait Chapter {
     /// Get the URL of the chapter
@@ -48,6 +50,8 @@ pub enum ChapterError {
     MangadexError(#[from] mangadex::MangadexError),
     #[error(transparent)]
     TruyenqqError(#[from] truyenqq::TruyenqqError),
+    #[error(transparent)]
+    TruyenTranhTuanError(#[from] truyentranhtuan::TruyenTranhTuanError),
     #[error("site '{0}' is not supported")]
     SiteNotSupported(String),
 }
@@ -140,6 +144,9 @@ pub async fn get_chapter(
         Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
+        Some("truyentranhtuan.com") => Ok(Box::new(
+            truyentranhtuan::TruyenTranhTuanChapter::from_url(url).await?,
+        )),
         Some(x) => Err(ChapterError::SiteNotSupported(x.to_string())),
         None => Err(ChapterError::InvalidUrl(url.to_string())),
     }

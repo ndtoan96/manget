@@ -7,8 +7,6 @@ use crate::{download::DownloadItem, manga::Chapter};
 pub enum TruyenqqError {
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),
-    #[error(transparent)]
-    RegexError(#[from] regex::Error),
     #[error("Parse error: {0}")]
     ParseError(&'static str),
 }

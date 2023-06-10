@@ -4,7 +4,10 @@ use clap::Parser;
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
 };
-use tower::{Service, ServiceBuilder, ServiceExt};
+use tower::{
+    limit::{ConcurrencyLimitLayer, RateLimitLayer},
+    Service, ServiceBuilder, ServiceExt,
+};
 
 /// Manga download tool
 #[derive(Debug, Parser)]
@@ -18,6 +21,20 @@ struct Args {
     file: Option<PathBuf>,
     #[arg(group = "group_url")]
     url: Option<String>,
+    #[arg(long = "cl", help = "concurrency limt")]
+    concurrency_limit: Option<usize>,
+    #[arg(
+        long = "max-chap",
+        group = "rate",
+        help = "set rate limit, used along with --per"
+    )]
+    max_chap: Option<u64>,
+    #[arg(
+        long = "per",
+        group = "rate",
+        help = "set rate limit (seconds), used along with --max-chap"
+    )]
+    duration: Option<u64>,
 }
 
 #[tokio::main]
@@ -38,13 +55,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 cbz: bool,
             }
 
+            let maybe_concurrency_limit = if let Some(limit) = args.concurrency_limit {
+                Some(ConcurrencyLimitLayer::new(limit))
+            } else {
+                None
+            };
+
+            let maybe_rate_limit =
+                if let (Some(max_chap), Some(dur)) = (args.max_chap, args.duration) {
+                    Some(RateLimitLayer::new(max_chap, Duration::from_secs(dur)))
+                } else {
+                    None
+                };
+
             // Create a download service
-            let mut download_service =
-                ServiceBuilder::new().rate_limit(3, Duration::from_secs(5)).service_fn(
-                    |req: DownloadRequest| async move {
-                        download_one(req.url, req.out_dir, req.cbz).await
-                    },
-                );
+            let mut download_service = ServiceBuilder::new()
+                // .option_layer(maybe_concurrency_limit)
+                // .option_layer(maybe_rate_limit)
+                .service_fn(|req: DownloadRequest| async move {
+                    download_one(req.url, req.out_dir, req.cbz).await
+                });
 
             let mut future_handles = Vec::new();
             for url in content.lines() {

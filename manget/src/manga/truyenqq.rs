@@ -42,7 +42,7 @@ impl TruyenqqChapter {
             .trim_start_matches("- ")
             .to_string();
 
-        let img_selector = Selector::parse("img.lazy[referrerpolicy=\"origin\"]").unwrap();
+        let img_selector = Selector::parse("div.page-chapter[id^=\"page\"] > img").unwrap();
         let mut pages = Vec::new();
         for (i, img_elem) in html.select(&img_selector).enumerate() {
             let src = img_elem.value().attr("src").unwrap();

@@ -3,6 +3,7 @@ use std::{
     fs,
     io::{self, Cursor},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use futures::FutureExt;
@@ -18,17 +19,17 @@ pub enum DownloadError {
     IoError(#[from] io::Error),
     #[error(transparent)]
     ConvertError(#[from] reqwest::header::ToStrError),
-    #[error("{source}")]
-    RequestError {
-        item: DownloadItem,
-        source: reqwest::Error,
-    },
+    #[error(transparent)]
+    RequestError(#[from] reqwest::Error),
+    #[error("this error should never be reported")]
+    PhantomError,
 }
 
 #[derive(Debug, Clone)]
 pub struct DownloadItem {
     url: String,
     name: Option<String>,
+    alt_urls: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -43,6 +44,7 @@ impl DownloadItem {
         Self {
             url: url.to_string(),
             name: name.map(|x| x.to_string()),
+            alt_urls: Vec::new(),
         }
     }
 
@@ -53,6 +55,10 @@ impl DownloadItem {
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
+
+    pub fn alt_urls(&self) -> &[String] {
+        &self.alt_urls
+    }
 }
 
 impl DownloadOptions {
@@ -61,10 +67,7 @@ impl DownloadOptions {
     }
 
     pub fn add_url(&mut self, url: &str) -> &mut Self {
-        self.items.push(DownloadItem {
-            url: url.to_string(),
-            name: None,
-        });
+        self.items.push(DownloadItem::new(url, None));
         self
     }
 
@@ -113,7 +116,7 @@ pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
     let downloads: Vec<_> = items
         .iter()
         .map(|item| {
-            download_one_url(item, path, referer).then(|result| async {
+            download_one_item(item, path, referer).then(|result| async {
                 match &result {
                     Ok(p) => info!("Downloaded: {} -> {}", item.url(), p.display()),
                     Err(e) => error!("{e}"),
@@ -125,38 +128,50 @@ pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
     futures::future::join_all(downloads).await
 }
 
-async fn download_one_url(
+async fn download_one_item(
     item: &DownloadItem,
     path: &Path,
     referer: &Option<String>,
 ) -> Result<PathBuf> {
+    let mut urls = vec![item.url()];
+    for url in item.alt_urls() {
+        urls.push(url);
+    }
+    let mut ret_err = DownloadError::PhantomError;
+    for url in urls {
+        match download_one_url(url, item.name(), path, referer).await {
+            Ok(p) => return Ok(p),
+            Err(e) => {
+                error!("url = '{}', error = {:?}", url, e);
+                ret_err = e;
+            },
+        }
+    }
+    Err(ret_err)
+}
+
+async fn download_one_url(
+    url: &str,
+    name: Option<&str>,
+    path: &Path,
+    referer: &Option<String>,
+) -> Result<PathBuf> {
     let client = reqwest::Client::new();
-    let mut request = client.get(&item.url);
+    let mut request = client.get(url).timeout(Duration::from_secs(30));
     if let Some(r) = referer {
         request = request.header("referer", r);
     }
-    let response = request
-        .send()
-        .await
-        .map_err(|e| DownloadError::RequestError {
-            item: item.clone(),
-            source: e,
-        })?
-        .error_for_status()
-        .map_err(|e| DownloadError::RequestError {
-            item: item.clone(),
-            source: e,
-        })?;
+    let response = request.send().await?.error_for_status()?;
 
     // provided file name or inferred from url
-    let file_name = match &item.name {
+    let file_name = match name {
         Some(value) => value.to_string(),
-        None => reqwest::Url::parse(&item.url)
-            .map_err(|_| DownloadError::InvalidUrl(item.url.to_string()))?
+        None => reqwest::Url::parse(url)
+            .map_err(|_| DownloadError::InvalidUrl(url.to_string()))?
             .path_segments()
-            .ok_or(DownloadError::InvalidUrl(item.url.to_string()))?
+            .ok_or(DownloadError::InvalidUrl(url.to_string()))?
             .last()
-            .ok_or(DownloadError::InvalidUrl(item.url.to_string()))?
+            .ok_or(DownloadError::InvalidUrl(url.to_string()))?
             .to_string(),
     };
 
@@ -169,16 +184,7 @@ async fn download_one_url(
     }
     let file_path = path.join(file_name);
     let mut file = std::fs::File::create(&file_path)?;
-    let mut content =
-        Cursor::new(
-            response
-                .bytes()
-                .await
-                .map_err(|e| DownloadError::RequestError {
-                    item: item.clone(),
-                    source: e,
-                })?,
-        );
+    let mut content = Cursor::new(response.bytes().await?);
     std::io::copy(&mut content, &mut file)?;
     Ok(file_path)
 }

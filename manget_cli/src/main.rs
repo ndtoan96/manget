@@ -1,6 +1,7 @@
 use std::{error::Error, fs, path::PathBuf, time::Duration};
 
 use clap::Parser;
+use futures::future::try_join_all;
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
 };
@@ -35,15 +36,20 @@ struct Args {
         help = "set rate limit (seconds), used along with --max-chap"
     )]
     duration: Option<u64>,
+    #[arg(
+        long = "sync",
+        help = "Download each chapter one by one instead of in parallel"
+    )]
+    one_by_one: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+    env_logger::init();
 
     match (args.url, args.file) {
         (Some(url), _) => {
-            env_logger::init();
             download_one(url, args.out_dir, args.cbz).await?;
         }
         (_, Some(file)) => {
@@ -85,9 +91,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 });
                 future_handles.push(handle);
             }
-            let all_result = futures::future::join_all(future_handles).await;
-            if let Some(r) = all_result.into_iter().find(|r| r.is_err()) {
-                return r;
+            if args.one_by_one {
+                for f in future_handles {
+                    f.await?;
+                }
+            } else {
+                try_join_all(future_handles).await?;
             }
         }
         (None, None) => unreachable!(),

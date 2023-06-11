@@ -17,6 +17,7 @@ pub struct TruyenqqChapter {
     manga: String,
     chapter: String,
     pages: Vec<DownloadItem>,
+    referer: String,
 }
 
 impl TruyenqqChapter {
@@ -56,7 +57,13 @@ impl TruyenqqChapter {
             manga,
             chapter,
             pages,
+            referer: "truyenqq.com.vn".to_string(),
         })
+    }
+
+    pub fn set_referer(mut self, referer: &str) -> Self {
+        self.referer = referer.to_string();
+        self
     }
 }
 
@@ -78,7 +85,7 @@ impl Chapter for TruyenqqChapter {
     }
 
     fn referer(&self) -> Option<String> {
-        Some("https://truyenqq.com.vn/".to_string())
+        Some(self.referer.clone())
     }
 }
 

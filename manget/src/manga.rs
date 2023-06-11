@@ -3,13 +3,12 @@ mod mangapark;
 mod truyenqq;
 mod truyentranhtuan;
 
-use log::{info, warn};
+use log::info;
 use reqwest::IntoUrl;
 use std::{
     fmt::Display,
     fs,
     path::{Path, PathBuf},
-    time::Duration,
 };
 use zip::write::FileOptions;
 use zip::ZipWriter;
@@ -76,34 +75,20 @@ pub async fn download_chapter<P: Into<PathBuf>>(
         options.set_referer(&r);
     }
 
-    let mut failed_items = Vec::new();
+    let mut failed_sources = Vec::new();
 
     for result in download(&options).await {
-        if let Err(DownloadError::RequestError { item, source: _ }) = result {
-            failed_items.push(item);
+        if let Err(e) = result {
+            failed_sources.push(e);
         }
     }
 
-    // retry failed items after some time
-    if !failed_items.is_empty() {
-        warn!("** some download items have failed, wait for 5 seconds and retry **");
-        tokio::time::sleep(Duration::from_secs(5)).await;
-        options.clear_download_items();
-        options.add_download_items(&failed_items);
-        let results = download(&options).await;
-        if results.iter().all(|x| x.is_ok()) {
-            Ok(download_path)
-        } else {
-            let mut sources = Vec::new();
-            for result in results {
-                if let Err(e) = result {
-                    sources.push(e);
-                }
-            }
-            Err(ChapterError::PagesDownloadError { sources })
-        }
-    } else {
+    if failed_sources.is_empty() {
         Ok(download_path)
+    } else {
+        Err(ChapterError::PagesDownloadError {
+            sources: failed_sources,
+        })
     }
 }
 
@@ -144,6 +129,11 @@ pub async fn get_chapter(
         Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
+        Some("truyenqqne.com") => Ok(Box::new(
+            truyenqq::TruyenqqChapter::from_url(url)
+                .await?
+                .set_referer("https://truyenqqne.com/"),
+        )),
         Some("truyentuan.com") => Ok(Box::new(
             truyentranhtuan::TruyenTranhTuanChapter::from_url(url).await?,
         )),

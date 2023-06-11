@@ -1,5 +1,6 @@
 mod mangadex;
 mod mangapark;
+mod toptruyen;
 mod truyenqq;
 mod truyentranhtuan;
 
@@ -51,6 +52,8 @@ pub enum ChapterError {
     TruyenqqError(#[from] truyenqq::TruyenqqError),
     #[error(transparent)]
     TruyenTranhTuanError(#[from] truyentranhtuan::TruyenTranhTuanError),
+    #[error(transparent)]
+    TopTruyenError(#[from] toptruyen::TopTruyenError),
     #[error("site '{0}' is not supported")]
     SiteNotSupported(String),
 }
@@ -129,12 +132,11 @@ pub async fn get_chapter(
         Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
+        Some("www.toptruyen.live") => Ok(Box::new(toptruyen::TopTruyenChapter::from_url(url).await?)),
         Some("truyenqqne.com") => Ok(Box::new(
-            truyenqq::TruyenqqChapter::from_url(
-                url.to_string().replace("truyenqqne.com", "104.26.1.138"),
-            )
-            .await?
-            .set_referer("https://truyenqqne.com/"),
+            truyenqq::TruyenqqChapter::from_url(url)
+                .await?
+                .set_referer("https://truyenqqne.com/"),
         )),
         Some("truyentuan.com") => Ok(Box::new(
             truyentranhtuan::TruyenTranhTuanChapter::from_url(url).await?,

@@ -154,7 +154,7 @@ async fn download_one_url(
     referer: &Option<String>,
 ) -> Result<PathBuf> {
     let client = reqwest::Client::new();
-    let mut request = client.get(url).timeout(Duration::from_secs(30));
+    let mut request = client.get(url).timeout(Duration::from_secs(60));
     if let Some(r) = referer {
         request = request.header("referer", r);
     }

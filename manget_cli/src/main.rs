@@ -1,7 +1,7 @@
 use std::{error::Error, fs, path::PathBuf, time::Duration};
 
 use clap::Parser;
-use futures::future::try_join_all;
+use futures::future::{join_all, try_join_all};
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
 };
@@ -20,6 +20,11 @@ struct Args {
     cbz: bool,
     #[arg(short, long, group = "group_file", conflicts_with = "group_url")]
     file: Option<PathBuf>,
+    #[arg(
+        long = "continue",
+        help = "continue to download even if there is error"
+    )]
+    ignore_error: bool,
     #[arg(group = "group_url")]
     url: Option<String>,
     #[arg(long = "cl", help = "concurrency limt")]
@@ -93,10 +98,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             if args.one_by_one {
                 for f in future_handles {
-                    f.await?;
+                    if args.ignore_error {
+                        let _ = f.await;
+                    } else {
+                        f.await?;
+                    }
                 }
             } else {
-                try_join_all(future_handles).await?;
+                if args.ignore_error {
+                    join_all(future_handles).await;
+                } else {
+                    try_join_all(future_handles).await?;
+                }
             }
         }
         (None, None) => unreachable!(),

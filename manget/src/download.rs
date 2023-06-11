@@ -141,10 +141,7 @@ async fn download_one_item(
     for url in urls {
         match download_one_url(url, item.name(), path, referer).await {
             Ok(p) => return Ok(p),
-            Err(e) => {
-                error!("url = '{}', error = {:?}", url, e);
-                ret_err = e;
-            },
+            Err(e) => ret_err = e,
         }
     }
     Err(ret_err)

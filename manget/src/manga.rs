@@ -130,9 +130,11 @@ pub async fn get_chapter(
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
         Some("truyenqqne.com") => Ok(Box::new(
-            truyenqq::TruyenqqChapter::from_url(url)
-                .await?
-                .set_referer("https://truyenqqne.com/"),
+            truyenqq::TruyenqqChapter::from_url(
+                url.to_string().replace("truyenqqne.com", "104.26.1.138"),
+            )
+            .await?
+            .set_referer("https://truyenqqne.com/"),
         )),
         Some("truyentuan.com") => Ok(Box::new(
             truyentranhtuan::TruyenTranhTuanChapter::from_url(url).await?,

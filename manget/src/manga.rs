@@ -132,12 +132,10 @@ pub async fn get_chapter(
         Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
-        Some("www.toptruyen.live") => Ok(Box::new(toptruyen::TopTruyenChapter::from_url(url).await?)),
-        Some("truyenqqne.com") => Ok(Box::new(
-            truyenqq::TruyenqqChapter::from_url(url)
-                .await?
-                .set_referer("https://truyenqqne.com/"),
-        )),
+        Some("truyenqqne.com") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
+        Some("www.toptruyen.live") => {
+            Ok(Box::new(toptruyen::TopTruyenChapter::from_url(url).await?))
+        }
         Some("truyentuan.com") => Ok(Box::new(
             truyentranhtuan::TruyenTranhTuanChapter::from_url(url).await?,
         )),

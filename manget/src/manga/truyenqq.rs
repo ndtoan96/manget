@@ -53,17 +53,16 @@ impl TruyenqqChapter {
             ));
         }
         Ok(Self {
-            url: url.to_string(),
+            url: url.clone().to_string(),
             manga,
             chapter,
             pages,
-            referer: "truyenqq.com.vn".to_string(),
+            referer: if url.to_string().contains("truyenqqne.com") {
+                "https://truyenqqne.com/".to_string()
+            } else {
+                "https://truyenqq.com.vn/".to_string()
+            },
         })
-    }
-
-    pub fn set_referer(mut self, referer: &str) -> Self {
-        self.referer = referer.to_string();
-        self
     }
 }
 

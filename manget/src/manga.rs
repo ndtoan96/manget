@@ -3,6 +3,7 @@ mod mangapark;
 mod toptruyen;
 mod truyenqq;
 mod truyentranhtuan;
+mod blogtruyen;
 
 use log::info;
 use reqwest::IntoUrl;
@@ -15,6 +16,8 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use crate::download::{download, DownloadError, DownloadItem, DownloadOptions};
+
+use self::blogtruyen::BlogTruyenChapter;
 
 pub trait Chapter {
     /// Get the URL of the chapter
@@ -54,6 +57,8 @@ pub enum ChapterError {
     TruyenTranhTuanError(#[from] truyentranhtuan::TruyenTranhTuanError),
     #[error(transparent)]
     TopTruyenError(#[from] toptruyen::TopTruyenError),
+    #[error(transparent)]
+    BlogTruyenError(#[from] blogtruyen::BlogTruyenError),
     #[error("site '{0}' is not supported")]
     SiteNotSupported(String),
 }
@@ -133,6 +138,7 @@ pub async fn get_chapter(
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
         Some("truyenqqne.com") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
+        Some("blogtruyen.vn") => Ok(Box::new(BlogTruyenChapter::from_url(url).await?)),
         Some("www.toptruyen.live") => {
             Ok(Box::new(toptruyen::TopTruyenChapter::from_url(url).await?))
         }

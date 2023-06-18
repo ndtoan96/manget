@@ -1,6 +1,6 @@
 [package]
 name = "manget_cli"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 
@@ -9,7 +9,6 @@ authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 [dependencies]
 clap = { version = "4.3.0", features = ["derive"] }
 env_logger = "0.10.0"
-futures = "0.3.28"
 manget = { version = "0.*", path = "../manget" }
 tokio = { version = "1.28.1", features = ["macros"] }
 tower = { version = "0.4.13", features = ["limit", "util"] }

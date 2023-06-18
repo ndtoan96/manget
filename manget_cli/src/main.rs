@@ -1,7 +1,6 @@
 use std::{fs, path::PathBuf, time::Duration};
 
-use clap::Parser;
-use futures::future::{join_all, try_join_all};
+use clap::{Args, Parser};
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
     ChapterError,
@@ -14,39 +13,40 @@ use tower::{
 /// Manga download tool
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
-struct Args {
+struct DownloadArgs {
+    /* Common */
     #[arg(short, long)]
     out_dir: Option<PathBuf>,
     #[arg(long)]
     cbz: bool,
-    #[arg(short, long, group = "group_file", conflicts_with = "group_url")]
+
+    /* Group URL */
+    #[arg(conflicts_with = "group_batch")]
+    url: Option<String>,
+
+    #[command(flatten)]
+    batch_args: BatchDownloadArgs,
+}
+
+#[derive(Debug, Args)]
+#[group(id = "group_batch")]
+struct BatchDownloadArgs {
+    #[arg(short, long)]
     file: Option<PathBuf>,
     #[arg(
         long = "continue",
         help = "continue to download even if there is error"
     )]
     ignore_error: bool,
-    #[arg(group = "group_url")]
-    url: Option<String>,
     #[arg(long = "cl", help = "concurrency limt")]
     concurrency_limit: Option<usize>,
-    #[arg(
-        long = "max-chap",
-        group = "rate",
-        help = "set rate limit, used along with --per"
-    )]
+    #[arg(long = "max-chap", help = "set rate limit, used along with --per")]
     max_chap: Option<u64>,
     #[arg(
-        long = "per",
-        group = "rate",
+        long = "per-secs",
         help = "set rate limit (seconds), used along with --max-chap"
     )]
     duration: Option<u64>,
-    #[arg(
-        long = "sync",
-        help = "Download each chapter one by one instead of in parallel"
-    )]
-    one_by_one: bool,
 }
 
 struct DownloadRequest {
@@ -57,10 +57,10 @@ struct DownloadRequest {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let args = Args::parse();
+    let args = DownloadArgs::parse();
     env_logger::init();
 
-    match (args.url, args.file) {
+    match (args.url, args.batch_args.file) {
         (Some(url), _) => {
             download_one(DownloadRequest {
                 url: url.to_string(),
@@ -72,14 +72,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         (_, Some(file)) => {
             let content = fs::read_to_string(&file)?;
 
-            let maybe_concurrency_limit = args.concurrency_limit.map(ConcurrencyLimitLayer::new);
+            let maybe_concurrency_limit = args
+                .batch_args
+                .concurrency_limit
+                .map(ConcurrencyLimitLayer::new);
 
-            let maybe_rate_limit =
-                if let (Some(max_chap), Some(dur)) = (args.max_chap, args.duration) {
-                    Some(RateLimitLayer::new(max_chap, Duration::from_secs(dur)))
-                } else {
-                    None
-                };
+            let maybe_rate_limit = if let (Some(max_chap), Some(dur)) =
+                (args.batch_args.max_chap, args.batch_args.duration)
+            {
+                Some(RateLimitLayer::new(max_chap, Duration::from_secs(dur)))
+            } else {
+                None
+            };
 
             // Create a download service
             let mut download_service = ServiceBuilder::new()
@@ -87,28 +91,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 .option_layer(maybe_rate_limit)
                 .service_fn(download_one);
 
-            let mut future_handles = Vec::new();
             for url in content.lines() {
-                let handle = download_service.ready().await?.call(DownloadRequest {
+                let request = DownloadRequest {
                     url: url.to_string(),
                     out_dir: args.out_dir.clone(),
                     cbz: args.cbz,
-                });
-                future_handles.push(handle);
-            }
-            if args.one_by_one {
-                for f in future_handles {
-                    if let Err(e) = f.await {
-                        eprintln!("{}", e);
-                        if !args.ignore_error {
-                            return Err(e);
-                        }
+                };
+                if let Err(e) = download_service.ready().await?.call(request).await {
+                    if !args.batch_args.ignore_error {
+                        return Err(e);
+                    } else {
+                        eprintln!("{e}");
                     }
                 }
-            } else if args.ignore_error {
-                join_all(future_handles).await;
-            } else {
-                try_join_all(future_handles).await?;
             }
         }
         (None, None) => unreachable!(),

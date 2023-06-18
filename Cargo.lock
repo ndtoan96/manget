@@ -1224,11 +1224,10 @@ dependencies = [
 
 [[package]]
 name = "manget_cli"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "clap",
  "env_logger",
- "futures",
  "manget",
  "tokio",
  "tower",

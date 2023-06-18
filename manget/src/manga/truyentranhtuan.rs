@@ -15,7 +15,7 @@ pub enum TruyenTranhTuanError {
     #[error("Parse error: {0}")]
     ParseError(&'static str),
     #[error(transparent)]
-    DeserializeError(#[from] serde_json::Error),
+    CannotDeserialize(#[from] serde_json::Error),
 }
 
 #[derive(Debug)]

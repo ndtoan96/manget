@@ -1,9 +1,10 @@
-use std::{error::Error, fs, path::PathBuf, time::Duration};
+use std::{fs, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use futures::future::{join_all, try_join_all};
 use manget::manga::{
     download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
+    ChapterError,
 };
 use tower::{
     limit::{ConcurrencyLimitLayer, RateLimitLayer},
@@ -48,29 +49,30 @@ struct Args {
     one_by_one: bool,
 }
 
+struct DownloadRequest {
+    url: String,
+    out_dir: Option<PathBuf>,
+    cbz: bool,
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Args::parse();
     env_logger::init();
 
     match (args.url, args.file) {
         (Some(url), _) => {
-            download_one(url, args.out_dir, args.cbz).await?;
+            download_one(DownloadRequest {
+                url: url.to_string(),
+                out_dir: args.out_dir.clone(),
+                cbz: args.cbz,
+            })
+            .await?;
         }
         (_, Some(file)) => {
             let content = fs::read_to_string(&file)?;
 
-            struct DownloadRequest {
-                url: String,
-                out_dir: Option<PathBuf>,
-                cbz: bool,
-            }
-
-            let maybe_concurrency_limit = if let Some(limit) = args.concurrency_limit {
-                Some(ConcurrencyLimitLayer::new(limit))
-            } else {
-                None
-            };
+            let maybe_concurrency_limit = args.concurrency_limit.map(ConcurrencyLimitLayer::new);
 
             let maybe_rate_limit =
                 if let (Some(max_chap), Some(dur)) = (args.max_chap, args.duration) {
@@ -81,11 +83,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             // Create a download service
             let mut download_service = ServiceBuilder::new()
-                // .option_layer(maybe_concurrency_limit)
-                // .option_layer(maybe_rate_limit)
-                .service_fn(|req: DownloadRequest| async move {
-                    download_one(req.url, req.out_dir, req.cbz).await
-                });
+                .option_layer(maybe_concurrency_limit)
+                .option_layer(maybe_rate_limit)
+                .service_fn(download_one);
 
             let mut future_handles = Vec::new();
             for url in content.lines() {
@@ -98,18 +98,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             if args.one_by_one {
                 for f in future_handles {
-                    if args.ignore_error {
-                        let _ = f.await;
-                    } else {
-                        f.await?;
+                    if let Err(e) = f.await {
+                        eprintln!("{}", e);
+                        if !args.ignore_error {
+                            return Err(e);
+                        }
                     }
                 }
+            } else if args.ignore_error {
+                join_all(future_handles).await;
             } else {
-                if args.ignore_error {
-                    join_all(future_handles).await;
-                } else {
-                    try_join_all(future_handles).await?;
-                }
+                try_join_all(future_handles).await?;
             }
         }
         (None, None) => unreachable!(),
@@ -118,11 +117,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn download_one(
-    url: String,
-    out_dir: Option<PathBuf>,
-    cbz: bool,
-) -> Result<(), Box<dyn Error>> {
+async fn download_one(request: DownloadRequest) -> Result<(), ChapterError> {
+    let url = request.url;
+    let out_dir = request.out_dir;
+    let cbz = request.cbz;
+
     let chapter = get_chapter(url).await?;
     if cbz {
         download_chapter_as_cbz(

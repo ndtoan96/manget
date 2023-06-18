@@ -40,7 +40,7 @@ pub struct DownloadOptions {
 }
 
 impl DownloadItem {
-    pub fn new<'a, 'b>(url: &'a str, name: Option<&'b str>) -> Self {
+    pub fn new(url: &str, name: Option<&str>) -> Self {
         Self {
             url: url.to_string(),
             name: name.map(|x| x.to_string()),

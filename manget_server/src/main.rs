@@ -1,9 +1,9 @@
 use actix_web::http::header;
+use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use actix_web::{middleware::Logger, post, App, HttpServer};
-use actix_web::{web, HttpResponse, ResponseError};
 use manget::manga;
 use manget::manga::ChapterError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -45,16 +45,36 @@ async fn download(json: web::Json<DownloadRequest>) -> Result<HttpResponse, Wrap
         .body(data))
 }
 
+#[derive(Debug, Serialize)]
+struct ChapterInfoResponseBody {
+    chapter_name: String,
+}
+
+#[get("/chapter_info")]
+async fn chapter_info(json: web::Json<DownloadRequest>) -> Result<impl Responder, WrapperError> {
+    let chapter = manga::get_chapter(&json.url).await?;
+    let chapter_full_name = manga::generate_chapter_full_name(&chapter);
+    let response_body = ChapterInfoResponseBody {
+        chapter_name: chapter_full_name.trim().to_string(),
+    };
+    Ok(web::Json(response_body))
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    HttpServer::new(|| App::new().wrap(Logger::default()).service(download))
-        .bind(("0.0.0.0", 8080))?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .wrap(Logger::default())
+            .service(download)
+            .service(chapter_info)
+    })
+    .bind(("0.0.0.0", 8080))?
+    .run()
+    .await
 }
 
 async fn download_chapter_from_url(url: &str) -> Result<(String, PathBuf), ChapterError> {

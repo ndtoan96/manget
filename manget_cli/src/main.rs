@@ -141,3 +141,20 @@ async fn download_one(request: DownloadRequest) -> Result<(), ChapterError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use crate::{DownloadRequest, download_one};
+
+    #[tokio::test]
+    async fn test_download_one() {
+        let download_request = DownloadRequest {
+            url: "https://blogtruyen.vn/c747319/kuroiwa-medaka-ni-watasgu-no-kawaii-ga-tsuujinai-chap-67-ten-khon-do-va-gia-su-nhu".to_string(),
+            cbz: false,
+            out_dir: Some(PathBuf::from("test"))
+        };
+        download_one(download_request).await.unwrap();
+    }
+}

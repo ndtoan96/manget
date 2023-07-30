@@ -1,6 +1,6 @@
 use actix_web::http::header;
-use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use actix_web::{middleware::Logger, post, App, HttpServer};
+use actix_web::{web, HttpResponse, Responder, ResponseError};
 use manget::manga;
 use manget::manga::ChapterError;
 use serde::{Deserialize, Serialize};
@@ -50,7 +50,7 @@ struct ChapterInfoResponseBody {
     chapter_name: String,
 }
 
-#[get("/chapter_info")]
+#[post("/get_chapter_info")]
 async fn chapter_info(json: web::Json<DownloadRequest>) -> Result<impl Responder, WrapperError> {
     let chapter = manga::get_chapter(&json.url).await?;
     let chapter_full_name = manga::generate_chapter_full_name(&chapter);

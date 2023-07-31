@@ -1,9 +1,10 @@
+mod blogtruyen;
 mod mangadex;
 mod mangapark;
+mod nettruyen;
 mod toptruyen;
 mod truyenqq;
 mod truyentranhtuan;
-mod blogtruyen;
 
 use log::info;
 use reqwest::IntoUrl;
@@ -16,8 +17,6 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use crate::download::{download, DownloadError, DownloadItem, DownloadOptions};
-
-use self::blogtruyen::BlogTruyenChapter;
 
 pub trait Chapter {
     /// Get the URL of the chapter
@@ -59,6 +58,8 @@ pub enum ChapterError {
     TopTruyenError(#[from] toptruyen::TopTruyenError),
     #[error(transparent)]
     BlogTruyenError(#[from] blogtruyen::BlogTruyenError),
+    #[error(transparent)]
+    NettruyenError(#[from] nettruyen::NettruyenError),
     #[error("site '{0}' is not supported")]
     SiteNotSupported(String),
 }
@@ -123,7 +124,8 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
 
 pub fn generate_chapter_full_name(chapter: impl AsRef<dyn Chapter>) -> String {
     let chapter = chapter.as_ref();
-    let sanitized_name = sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()));
+    let sanitized_name =
+        sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()));
     sanitized_name.trim_end_matches('.').to_string()
 }
 
@@ -139,13 +141,18 @@ pub async fn get_chapter(
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
         Some("truyenqqne.com") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
-        Some("blogtruyen.vn") => Ok(Box::new(BlogTruyenChapter::from_url(url).await?)),
+        Some("blogtruyen.vn") => Ok(Box::new(
+            blogtruyen::BlogTruyenChapter::from_url(url).await?,
+        )),
         Some("www.toptruyen.live") => {
             Ok(Box::new(toptruyen::TopTruyenChapter::from_url(url).await?))
         }
         Some("truyentuan.com") => Ok(Box::new(
             truyentranhtuan::TruyenTranhTuanChapter::from_url(url).await?,
         )),
+        Some(x) if x.contains("nettruyen") => {
+            Ok(Box::new(nettruyen::NettruyenChapter::from_url(url).await?))
+        }
         Some(x) => Err(ChapterError::SiteNotSupported(x.to_string())),
         None => Err(ChapterError::InvalidUrl(url.to_string())),
     }

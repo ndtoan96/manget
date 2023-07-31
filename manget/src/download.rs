@@ -40,12 +40,24 @@ pub struct DownloadOptions {
 }
 
 impl DownloadItem {
-    pub fn new(url: &str, name: Option<&str>) -> Self {
+    pub fn new<T1: ToString, T2: ToString>(url: T1, name: Option<T2>) -> Self {
         Self {
             url: url.to_string(),
             name: name.map(|x| x.to_string()),
             alt_urls: Vec::new(),
         }
+    }
+
+    pub fn add_url<T: ToString>(mut self, url: T) -> Self {
+        self.alt_urls.push(url.to_string());
+        self
+    }
+
+    pub fn add_option_url<T: ToString>(mut self, url: Option<T>) -> Self {
+        if let Some(url) = url {
+            self.alt_urls.push(url.to_string())
+        }
+        self
     }
 
     pub fn url(&self) -> &str {
@@ -67,7 +79,7 @@ impl DownloadOptions {
     }
 
     pub fn add_url(&mut self, url: &str) -> &mut Self {
-        self.items.push(DownloadItem::new(url, None));
+        self.items.push(DownloadItem::new(url, None as Option<String>));
         self
     }
 
@@ -90,7 +102,7 @@ impl DownloadOptions {
     }
 
     pub fn add_urls<'a>(mut self, urls: impl Iterator<Item = &'a str>) {
-        urls.for_each(|url| self.items.push(DownloadItem::new(url, None)));
+        urls.for_each(|url| self.items.push(DownloadItem::new(url, None as Option<String>)));
     }
 
     pub fn clear_download_items(&mut self) {

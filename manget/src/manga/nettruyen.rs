@@ -17,7 +17,7 @@ pub struct NettruyenChapter {
     manga: String,
     chapter: String,
     pages: Vec<DownloadItem>,
-    referer: String,
+    referer: Option<String>,
 }
 
 impl NettruyenChapter {
@@ -78,9 +78,9 @@ impl NettruyenChapter {
         let referer = if has_referer {
             let domain = url.domain().unwrap_or_default();
             let scheme = url.scheme();
-            format!("{}://{}/", scheme, domain)
+            Some(format!("{}://{}/", scheme, domain))
         } else {
-            String::default()
+            None
         };
 
         Ok(Self {
@@ -111,7 +111,7 @@ impl Chapter for NettruyenChapter {
     }
 
     fn referer(&self) -> Option<String> {
-        Some(self.referer.clone())
+        self.referer.clone()
     }
 }
 

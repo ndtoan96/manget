@@ -17,6 +17,7 @@ pub struct BlogTruyenChapter {
     manga: String,
     chapter: String,
     pages: Vec<DownloadItem>,
+    referer: String,
 }
 
 impl BlogTruyenChapter {
@@ -62,11 +63,14 @@ impl BlogTruyenChapter {
                 Some(&format!("page_{:02}.{}", i, ext)),
             ));
         }
+        let url = url.into_url()?;
+        let referer = format!("https://{}/", url.domain().unwrap_or_default());
         Ok(Self {
             url: url.to_string(),
             manga,
             chapter,
             pages,
+            referer,
         })
     }
 }
@@ -87,6 +91,10 @@ impl Chapter for BlogTruyenChapter {
     fn pages_download_info(&self) -> &Vec<DownloadItem> {
         &self.pages
     }
+
+    fn referer(&self) -> Option<String> {
+        Some(self.referer.clone())
+    }
 }
 
 #[cfg(test)]
@@ -94,6 +102,17 @@ impl Chapter for BlogTruyenChapter {
 async fn test_build_blogtruyen_chapter() {
     let chapter = BlogTruyenChapter::from_url(
         "https://blogtruyen.vn/c656991/nise-koi-chap-2295-ngoai-truyen",
+    )
+    .await
+    .unwrap();
+    dbg!(chapter);
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn test_build_blogtruyenmoi_chapter() {
+    let chapter = BlogTruyenChapter::from_url(
+        "https://blogtruyenmoi.com/c809137/kuroiwa-medaka-ni-watasgu-no-kawaii-ga-tsuujinai-chap-95-co-gai-do-va-nhung-gioi-luat",
     )
     .await
     .unwrap();

@@ -141,7 +141,7 @@ pub async fn get_chapter(
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
         Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
         Some("truyenqqne.com") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
-        Some("blogtruyen.vn") => Ok(Box::new(
+        Some(x) if x.contains("blogtruyen") => Ok(Box::new(
             blogtruyen::BlogTruyenChapter::from_url(url).await?,
         )),
         Some("www.toptruyen.live") => {

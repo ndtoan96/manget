@@ -154,7 +154,7 @@ async fn get_chapter_pages(chapter_id: &str) -> Result<Vec<DownloadItem>, Mangad
         .enumerate()
         .map(|(index, page_hash)| {
             DownloadItem::new(
-                &format!(
+                format!(
                     "{}/data-saver/{}/{}",
                     chapter_json.base_url, chapter_json.chapter.hash, page_hash
                 ),

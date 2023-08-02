@@ -12,3 +12,4 @@ env_logger = "0.10.0"
 manget = { version = "0.*", path = "../manget" }
 tokio = { version = "1.28.1", features = ["macros"] }
 tower = { version = "0.4.13", features = ["limit", "util"] }
+zip = "0.6.6"

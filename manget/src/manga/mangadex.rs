@@ -94,11 +94,14 @@ async fn get_chapter_info(
         chapter: Option<String>,
     }
 
-    let response = reqwest::get(&format!(
-        "https://api.mangadex.org/chapter/{chapter_id}?includes[]=manga"
-    ))
-    .await?
-    .error_for_status()?;
+    let response = reqwest::Client::new()
+        .get(&format!(
+            "https://api.mangadex.org/chapter/{chapter_id}?includes[]=manga"
+        ))
+        .header("User-Agent", "Manget")
+        .send()
+        .await?
+        .error_for_status()?;
     let json = response.text().await?;
     let chapter_info: ResponseBody = serde_json::from_str(&json).map_err(|e| {
         error!("Cannot deserialize {}. Error: {}", json, e);
@@ -137,11 +140,14 @@ async fn get_chapter_pages(chapter_id: &str) -> Result<Vec<DownloadItem>, Mangad
         data_saver: Vec<String>,
     }
 
-    let response = reqwest::get(format!(
-        "https://api.mangadex.org/at-home/server/{chapter_id}"
-    ))
-    .await?
-    .error_for_status()?;
+    let response = reqwest::Client::new()
+        .get(format!(
+            "https://api.mangadex.org/at-home/server/{chapter_id}"
+        ))
+        .header("User-Agent", "Manget")
+        .send()
+        .await?
+        .error_for_status()?;
     let json = response.text().await?;
     let chapter_json: ResponseBody = serde_json::from_str(&json).map_err(|e| {
         error!("Cannot deserialize {}. Error: {}", json, e);

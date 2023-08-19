@@ -124,9 +124,7 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
 
 pub fn generate_chapter_full_name(chapter: impl AsRef<dyn Chapter>) -> String {
     let chapter = chapter.as_ref();
-    let sanitized_name =
-        sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()));
-    sanitized_name.trim_end_matches('.').to_string()
+    sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()))
 }
 
 pub async fn get_chapter(

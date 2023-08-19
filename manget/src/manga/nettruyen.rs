@@ -28,7 +28,6 @@ impl NettruyenChapter {
             .send()
             .await?
             .error_for_status()?;
-        // let response = reqwest::get(url.clone()).await?.error_for_status()?;
         let html_content = response.text().await?;
 
         let html = Html::parse_document(&html_content);

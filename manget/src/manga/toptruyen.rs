@@ -87,7 +87,7 @@ impl Chapter for TopTruyenChapter {
 #[tokio::test]
 async fn test_build_toptruyen_chapter() {
     let chapter = TopTruyenChapter::from_url(
-        "https://www.toptruyen.live/truyen-tranh/grand-blue-co-gai-thich-lan/chapter-81/771033",
+        "https://www.toptruyenne.com/truyen-tranh/grand-blue-co-gai-thich-lan/chapter-81/771033",
     )
     .await
     .unwrap();

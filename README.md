@@ -8,10 +8,10 @@ Manga download cli tool
 Manga download server
 
 # Supported sites
-- [mangapark](https://mangapark.net)
-- [mangadex](https://mangadex.org)
-- [mangapark](https://mangapark.net)
-- [nettruyen](https://www.nettruyenmax.com)
-- [toptruyen](https://toptruyen.live)
-- [truyenqq](https://truyenqq.com.vn)
-- [truyentuan](https://truyentuan.com)
+- [mangapark](https://mangapark.net/)
+- [mangadex](https://mangadex.org/)
+- [mangapark](https://mangapark.net/)
+- [nettruyen](https://www.nettruyenmax.com/)
+- [toptruyen](https://www.toptruyenne.com/)
+- [truyenqq](https://truyenqq.com.vn/)
+- [truyentuan](https://truyentuan.com/)

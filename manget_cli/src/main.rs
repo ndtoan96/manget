@@ -1,6 +1,7 @@
 use std::{
     fs,
     io::{Read, Write},
+    ops::Deref,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -144,22 +145,23 @@ async fn download_one(request: DownloadRequest) -> Result<PathBuf, ChapterError>
     let out_dir = request.out_dir;
     let cbz = request.cbz;
 
-    let chapter = get_chapter(url).await?;
+    let chapter_own = get_chapter(url).await?;
+    let chapter = chapter_own.deref();
     let downloaded_path = if cbz {
         download_chapter_as_cbz(
-            &chapter,
+            chapter,
             out_dir.as_ref().map(|p| {
-                p.join(generate_chapter_full_name(&chapter))
+                p.join(generate_chapter_full_name(chapter))
                     .with_extension("cbz")
             }),
         )
         .await?
     } else {
         download_chapter(
-            &chapter,
+            chapter,
             out_dir
                 .as_ref()
-                .map(|p| p.join(generate_chapter_full_name(&chapter))),
+                .map(|p| p.join(generate_chapter_full_name(chapter))),
         )
         .await?
     };

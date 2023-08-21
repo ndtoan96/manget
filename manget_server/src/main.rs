@@ -5,6 +5,7 @@ use manget::manga;
 use manget::manga::ChapterError;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
+use std::ops::Deref;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -53,7 +54,7 @@ struct ChapterInfoResponseBody {
 #[post("/get_chapter_info")]
 async fn chapter_info(json: web::Json<DownloadRequest>) -> Result<impl Responder, WrapperError> {
     let chapter = manga::get_chapter(&json.url).await?;
-    let chapter_full_name = manga::generate_chapter_full_name(&chapter);
+    let chapter_full_name = manga::generate_chapter_full_name(chapter.deref());
     let response_body = ChapterInfoResponseBody {
         chapter_name: chapter_full_name.trim().to_string(),
     };
@@ -81,7 +82,7 @@ async fn download_chapter_from_url(url: &str) -> Result<(String, PathBuf), Chapt
     let chapter = manga::get_chapter(url).await?;
     let random_file_name = Uuid::new_v4().to_string();
     let zip_path = tempfile::tempdir()?.into_path().join(random_file_name);
-    let file_path = manga::download_chapter_as_cbz(&chapter, Some(zip_path)).await?;
-    let chapter_full_name = manga::generate_chapter_full_name(&chapter);
+    let file_path = manga::download_chapter_as_cbz(chapter.deref(), Some(zip_path)).await?;
+    let chapter_full_name = manga::generate_chapter_full_name(chapter.deref());
     Ok((format!("{chapter_full_name}.cbz"), file_path))
 }

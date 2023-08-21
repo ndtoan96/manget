@@ -65,13 +65,13 @@ pub enum ChapterError {
 }
 
 pub async fn download_chapter<P: Into<PathBuf>>(
-    chapter: impl AsRef<dyn Chapter>,
+    chapter: &dyn Chapter,
     path: Option<P>,
 ) -> Result<PathBuf, ChapterError> {
     // let chapter = chapter.as_ref();
     let download_path = path
         .map(|x| x.into())
-        .unwrap_or(Path::new(".").join(&generate_chapter_full_name(&chapter)));
+        .unwrap_or(Path::new(".").join(&generate_chapter_full_name(chapter)));
     let mut options = DownloadOptions::new()
         .set_path(&download_path)
         .map_err(|e| ChapterError::PathError {
@@ -79,8 +79,8 @@ pub async fn download_chapter<P: Into<PathBuf>>(
             source: e,
         })?;
 
-    options.add_download_items(chapter.as_ref().pages_download_info());
-    if let Some(r) = chapter.as_ref().referer() {
+    options.add_download_items(chapter.pages_download_info());
+    if let Some(r) = chapter.referer() {
         options.set_referer(&r);
     }
 
@@ -102,14 +102,14 @@ pub async fn download_chapter<P: Into<PathBuf>>(
 }
 
 pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
-    chapter: impl AsRef<dyn Chapter>,
+    chapter: &dyn Chapter,
     zip_path: Option<P>,
 ) -> Result<PathBuf, ChapterError> {
     let tempdir = tempfile::tempdir()?;
-    let outdir = download_chapter(&chapter, Some(tempdir.into_path())).await?;
+    let outdir = download_chapter(chapter, Some(tempdir.into_path())).await?;
     let zip_path = zip_path.map(|p| p.into()).unwrap_or(
         PathBuf::from(".")
-            .join(generate_chapter_full_name(&chapter))
+            .join(generate_chapter_full_name(chapter))
             .with_extension("cbz"),
     );
     if let Some(p) = zip_path.parent() {
@@ -122,8 +122,7 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
     Ok(zip_path)
 }
 
-pub fn generate_chapter_full_name(chapter: impl AsRef<dyn Chapter>) -> String {
-    let chapter = chapter.as_ref();
+pub fn generate_chapter_full_name(chapter: &dyn Chapter) -> String {
     sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()))
 }
 

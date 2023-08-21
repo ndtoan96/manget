@@ -7,10 +7,7 @@ use std::{
 };
 
 use clap::{Args, Parser};
-use manget::manga::{
-    download_chapter, download_chapter_as_cbz, generate_chapter_full_name, get_chapter,
-    ChapterError,
-};
+use manget::manga::{download_chapter, download_chapter_as_cbz, get_chapter, ChapterError};
 use tower::{
     limit::{ConcurrencyLimitLayer, RateLimitLayer},
     Service, ServiceBuilder, ServiceExt,
@@ -150,18 +147,15 @@ async fn download_one(request: DownloadRequest) -> Result<PathBuf, ChapterError>
     let downloaded_path = if cbz {
         download_chapter_as_cbz(
             chapter,
-            out_dir.as_ref().map(|p| {
-                p.join(generate_chapter_full_name(chapter))
-                    .with_extension("cbz")
-            }),
+            out_dir
+                .as_ref()
+                .map(|p| p.join(chapter.full_name()).with_extension("cbz")),
         )
         .await?
     } else {
         download_chapter(
             chapter,
-            out_dir
-                .as_ref()
-                .map(|p| p.join(generate_chapter_full_name(chapter))),
+            out_dir.as_ref().map(|p| p.join(chapter.full_name())),
         )
         .await?
     };

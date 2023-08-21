@@ -31,6 +31,10 @@ pub trait Chapter {
     fn referer(&self) -> Option<String> {
         None
     }
+    /// Get the full name of manga + chapter
+    fn full_name(&self) -> String {
+        sanitize_filename::sanitize(format!("{} - {}", self.manga(), self.chapter()))
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -71,7 +75,7 @@ pub async fn download_chapter<P: Into<PathBuf>>(
     // let chapter = chapter.as_ref();
     let download_path = path
         .map(|x| x.into())
-        .unwrap_or(Path::new(".").join(&generate_chapter_full_name(chapter)));
+        .unwrap_or(Path::new(".").join(chapter.full_name()));
     let mut options = DownloadOptions::new()
         .set_path(&download_path)
         .map_err(|e| ChapterError::PathError {
@@ -109,7 +113,7 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
     let outdir = download_chapter(chapter, Some(tempdir.into_path())).await?;
     let zip_path = zip_path.map(|p| p.into()).unwrap_or(
         PathBuf::from(".")
-            .join(generate_chapter_full_name(chapter))
+            .join(chapter.full_name())
             .with_extension("cbz"),
     );
     if let Some(p) = zip_path.parent() {
@@ -120,10 +124,6 @@ pub async fn download_chapter_as_cbz<P: Into<PathBuf>>(
     let _ = fs::remove_dir_all(outdir);
     info!("Done.");
     Ok(zip_path)
-}
-
-pub fn generate_chapter_full_name(chapter: &dyn Chapter) -> String {
-    sanitize_filename::sanitize(format!("{} - {}", chapter.manga(), chapter.chapter()))
 }
 
 pub async fn get_chapter(

@@ -2,3 +2,5 @@
 *.jpg
 *.png
 .vscode
+*.pem
+fly.toml

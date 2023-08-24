@@ -8,7 +8,7 @@ Manga download cli tool
 Manga download server
 
 # Microsoft Edge extension
-See [this page](https://ndtoan96.github.io/manget/))
+See [this page](https://ndtoan96.github.io/manget/)
 
 # Supported sites
 - [mangapark](https://mangapark.net/)

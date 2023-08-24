@@ -8,9 +8,7 @@ Manga download cli tool
 Manga download server
 
 # Microsoft Edge extension
-Before installing the extension: download this [registry script](https://ndtoan96.github.io/manget/extension/edge_policy.reg) and run with admin right to whitelist the extension.
-
-Restart the browser. Then download and install the extension [here](https://ndtoan96.github.io/manget/extension/manget_chrome.crx) 
+See [this page](https://github.com/ndtoan96/manget)
 
 # Supported sites
 - [mangapark](https://mangapark.net/)

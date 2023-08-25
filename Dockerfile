@@ -10,4 +10,5 @@ RUN cargo install --path .
 
 FROM ubuntu:latest
 COPY --from=builder /usr/local/cargo/bin/manget_server /usr/local/bin/manget_server
+EXPOSE 8080
 CMD ["manget_server"]

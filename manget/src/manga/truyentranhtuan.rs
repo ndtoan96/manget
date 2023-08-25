@@ -103,5 +103,8 @@ async fn test_build_truyentranhtuan_chapter() {
     let chapter = TruyenTranhTuanChapter::from_url("http://truyentuan.com/one-piece-chuong-1086/")
         .await
         .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase() == "one piece");
+    assert!(chapter.chapter.contains("1086"));
+    assert!(!chapter.pages.is_empty());
 }

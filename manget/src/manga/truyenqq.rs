@@ -42,7 +42,7 @@ impl TruyenqqChapter {
             .trim_start_matches("- ")
             .to_string();
 
-        let img_selector = Selector::parse("div.page-chapter[id^=\"page\"] > img").unwrap();
+        let img_selector = Selector::parse("div.page-chapter > img").unwrap();
         let mut pages = Vec::new();
         for (i, img_elem) in html.select(&img_selector).enumerate() {
             let src = img_elem.value().attr("src").unwrap();
@@ -96,5 +96,8 @@ async fn test_build_truyenqq_chapter() {
     )
     .await
     .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase().contains("blue"));
+    assert!(chapter.chapter.contains("85"));
+    assert!(!chapter.pages.is_empty());
 }

@@ -122,7 +122,10 @@ async fn test_build_nettruyenmax_chapter() {
     )
     .await
     .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase().contains("kuroiwa"));
+    assert!(chapter.chapter.contains("95"));
+    assert!(!chapter.pages.is_empty());
 }
 
 #[cfg(test)]
@@ -133,5 +136,8 @@ async fn test_build_nettruyenhd_chapter() {
     )
     .await
     .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase().contains("kuroiwa"));
+    assert!(chapter.chapter.contains("95"));
+    assert!(!chapter.pages.is_empty());
 }

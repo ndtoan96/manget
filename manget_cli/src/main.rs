@@ -265,5 +265,6 @@ mod test {
             out_dir: Some(PathBuf::from("test"))
         };
         download_one(download_request).await.unwrap();
+        std::fs::remove_dir_all("test").unwrap();
     }
 }

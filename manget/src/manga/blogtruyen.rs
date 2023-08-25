@@ -22,6 +22,10 @@ pub struct BlogTruyenChapter {
 
 impl BlogTruyenChapter {
     pub async fn from_url(url: impl IntoUrl + Clone + ToString) -> Result<Self, BlogTruyenError> {
+        let mut url = url.into_url().unwrap();
+        if url.domain().is_some_and(|x| x.starts_with("m.")) {
+            url.set_host(Some("blogtruyenmoi.com")).unwrap();
+        }
         let response = reqwest::Client::new()
             .get(url.clone())
             .header("Accept", "*/*")
@@ -63,7 +67,6 @@ impl BlogTruyenChapter {
                 Some(&format!("page_{:02}.{}", i, ext)),
             ));
         }
-        let url = url.into_url()?;
         let referer = format!("https://{}/", url.domain().unwrap_or_default());
         Ok(Self {
             url: url.to_string(),
@@ -105,7 +108,10 @@ async fn test_build_blogtruyen_chapter() {
     )
     .await
     .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert_eq!(chapter.manga.to_lowercase(), "nisekoi");
+    assert!(chapter.chapter.to_lowercase().contains("ngoại truyện"));
+    assert!(!chapter.pages_download_info().is_empty());
 }
 
 #[cfg(test)]
@@ -116,5 +122,22 @@ async fn test_build_blogtruyenmoi_chapter() {
     )
     .await
     .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase().contains("kuroiwa"));
+    assert!(chapter.chapter.to_lowercase().contains("95"));
+    assert!(!chapter.pages_download_info().is_empty());
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn test_build_blogtruyen_mobile_chapter() {
+    let chapter = BlogTruyenChapter::from_url(
+        "https://m.blogtruyenmoi.com/c824113/the-duke-of-death-and-his-black-maid-chuong-168-loi-hua",
+    )
+    .await
+    .unwrap();
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase().contains("công tước"));
+    assert!(chapter.chapter.contains("168"));
+    assert!(!chapter.pages_download_info().is_empty());
 }

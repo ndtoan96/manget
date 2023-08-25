@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 use crate::{download::DownloadItem, manga::Chapter};
 
+#[derive(Debug)]
 pub struct MangadexChapter {
     manga_title: String,
     chapter_title: Option<String>,
@@ -193,4 +194,18 @@ impl Chapter for MangadexChapter {
     fn pages_download_info(&self) -> &Vec<DownloadItem> {
         &self.pages
     }
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn test_mangadex() {
+    let chapter = MangadexChapter::from_url(
+        "https://mangadex.org/chapter/ffb86fb7-3e14-4314-9f84-a5784750bf7a",
+    )
+    .await
+    .unwrap();
+    dbg!(&chapter);
+    assert!(chapter.manga().to_lowercase().contains("iruma"));
+    assert!(chapter.chapter().contains("267.5"));
+    assert!(!chapter.pages.is_empty());
 }

@@ -91,5 +91,8 @@ async fn test_build_toptruyen_chapter() {
     )
     .await
     .unwrap();
-    dbg!(chapter);
+    dbg!(&chapter);
+    assert!(chapter.manga.to_lowercase().contains("blue"));
+    assert!(chapter.chapter.contains("81"));
+    assert!(!chapter.pages.is_empty());
 }

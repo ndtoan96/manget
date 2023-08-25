@@ -1,3 +1,5 @@
+![rust build](https://github.com/ndtoan96/manget/actions/workflows/rust.yml/badge.svg)
+
 This project is for personal use, but I think it is nice to make it public so other people with the same need can use it.
 
 Manget is a collection of tools written in Rust which help download manga from all over the internet and zip it to a `cbz` format so it can be read by an e-reader. Currently supported sites are:

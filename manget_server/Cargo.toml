@@ -1,6 +1,6 @@
 [package]
 name = "manget_server"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 

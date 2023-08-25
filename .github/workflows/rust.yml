@@ -19,4 +19,5 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      # toptruyen seems to block abroad ip, so skip it in github workflow
+      run: cargo test --verbose --skip toptruyen

@@ -9,6 +9,7 @@ ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 RUN cargo install --path .
 
 FROM ubuntu:latest
+RUN apt update && apt install -y openssl curl
 COPY --from=builder /usr/local/cargo/bin/manget_server /usr/local/bin/manget_server
 EXPOSE 8080
 CMD ["manget_server"]

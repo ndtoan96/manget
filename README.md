@@ -17,7 +17,7 @@ This project includes:
 - **manget_server**: a server that provides an api to download manga. This is typically used in tandem with a custom made browser extension.
 
 You're most likely interested in the `manget_cli` tool, which can be downloaded from the [release page](https://github.com/ndtoan96/manget/releases). This tool has 2 modes: download one chapter and download a list of chapters:
-- Download one chapter: `manget_cli <url>`
-- Download list of chapters: `manget_cli -f <file>`. Where `<file>` is a text file contains list of chapter urls.
+- Download one chapter: `manget_cli <url>`. To download into `cbz` format: `manget_cli --cbz <url>`.
+- Download list of chapters: `manget_cli -f <file>`. Where `<file>` is a text file contains list of chapter urls. To download into `cbz` format: `manget_cli --make-cbz -f <file>`.
 
 Run `manget_cli -h` for more detail.

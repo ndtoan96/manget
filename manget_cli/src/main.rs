@@ -221,50 +221,38 @@ where
     Ok(())
 }
 
-// fn zip_folder_contents(path: &Path, zip_file_path: &Path) -> io::Result<()> {
-//     // Create the zip archive file
-//     let file = fs::File::create(zip_file_path)?;
-//     let zip_writer = ZipWriter::new(file);
-
-//     // Traverse the directory and its subdirectories
-//     let options = FileOptions::default()
-//         .compression_method(Stored)
-//         .compression_level(CompressionLevel::Default);
-//     let mut buffer = Vec::new();
-
-//     for entry in fs::read_dir(path)? {
-//         let entry = entry?;
-//         let file_path = entry.path();
-
-//         // If the entry is a file, add it to the zip archive
-//         if file_path.is_file() {
-//             let relative_path = file_path.strip_prefix(path).unwrap();
-//             let file_name = relative_path.to_str().unwrap();
-//             zip_writer.start_file(file_name, options)?;
-//             let mut file = fs::File::open(file_path)?;
-//             file.read_to_end(&mut buffer)?;
-//             zip_writer.write_all(&buffer)?;
-//             buffer.clear();
-//         }
-//     }
-
-//     Ok(())
-// }
-
 #[cfg(test)]
 mod test {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     use crate::{download_one, DownloadRequest};
 
+    struct TestResource {
+        dir: PathBuf,
+    }
+
+    impl TestResource {
+        fn new(path: impl AsRef<Path>) -> Self {
+            Self {
+                dir: path.as_ref().to_path_buf(),
+            }
+        }
+    }
+
+    impl Drop for TestResource {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.dir);
+        }
+    }
+
     #[tokio::test]
     async fn test_download_one() {
+        let resource = TestResource::new("test");
         let download_request = DownloadRequest {
-            url: "https://blogtruyen.vn/c747319/kuroiwa-medaka-ni-watasgu-no-kawaii-ga-tsuujinai-chap-67-ten-khon-do-va-gia-su-nhu".to_string(),
+            url: "https://mangadex.org/chapter/f9a8fc1f-1fb5-43af-8844-1672ee6c7290".to_string(),
             cbz: false,
-            out_dir: Some(PathBuf::from("test"))
+            out_dir: Some(resource.dir.clone()),
         };
         download_one(download_request).await.unwrap();
-        std::fs::remove_dir_all("test").unwrap();
     }
 }

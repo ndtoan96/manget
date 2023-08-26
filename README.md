@@ -14,7 +14,7 @@ Manget is a collection of tools written in Rust which help download manga from a
 This project includes:
 - **manget**: the core library
 - **manget_cli**: a cli tool to download manga to local PC
-- **manget_server**: a server that provides an api to download manga. This is typically used in tandem with an custom made browser extension.
+- **manget_server**: a server that provides an api to download manga. This is typically used in tandem with a custom made browser extension.
 
 You're most likely interested in the `manget_cli` tool, which can be downloaded from the [release page](https://github.com/ndtoan96/manget/releases). This tool has 2 modes: download one chapter and download a list of chapters:
 - Download one chapter: `manget_cli <url>`

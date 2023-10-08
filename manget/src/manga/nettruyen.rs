@@ -34,27 +34,48 @@ impl NettruyenChapter {
         let title_selector = Selector::parse("h1.txt-primary").unwrap();
 
         let h1_elm = html
-            .select(&title_selector)
-            .next()
-            .ok_or(NettruyenError::ParseError("cannot find title"))?;
+        .select(&title_selector)
+        .next()
+        .ok_or(NettruyenError::ParseError("cannot find title"))?;
         let mut text_iter = h1_elm.text();
-        let manga = text_iter.next().unwrap_or("").trim().to_string();
-        text_iter.next(); // ignore newline
-        let chapter = text_iter
-            .next()
-            .unwrap_or("")
-            .trim()
-            .trim_start_matches("- ")
-            .to_string();
 
-        let img_selector = Selector::parse("div.page-chapter > img[data-index]").unwrap();
+        let mut manga = String::new();
+        let mut chapter =  String::new();
+        // find manga title
+        for _ in 0..10 {
+            if let Some(s) = text_iter.next() {
+                if !s.trim().is_empty() {
+                    manga = s.trim().to_string();
+                    break;
+                }
+            }
+        }
+
+        // find chapter title
+        for _ in 0..10 {
+            if let Some(s) = text_iter.next() {
+                if !s.trim().is_empty() {
+                    chapter = s.trim().trim_start_matches("- ").to_string();
+                    break;
+                }
+            }
+        }
+
+        let img_selector = Selector::parse("div.page-chapter > img").unwrap();
         let mut pages = Vec::new();
         let mut has_referer = true;
         for (i, img_elem) in html.select(&img_selector).enumerate() {
             if img_elem.value().attr("referrerpolicy") == Some("no-referrer") {
                 has_referer = false;
             }
-            let src = img_elem.value().attr("src").unwrap();
+            let src: &str;
+            if let Some(s) = img_elem.value().attr("src") {
+                src = s;
+            } else if let Some(s) = img_elem.value().attr("data-sv1") {
+                src = s;
+            } else {
+                continue;
+            }
             let src = if src.starts_with("http") {
                 src.to_string()
             } else {
@@ -116,28 +137,28 @@ impl Chapter for NettruyenChapter {
 
 #[cfg(test)]
 #[tokio::test]
-async fn test_build_nettruyenmax_chapter() {
+async fn test_build_nettruyenus_chapter() {
     let chapter = NettruyenChapter::from_url(
-        "https://www.nettruyenmax.com/truyen-tranh/kuroiwa-medaka-ni-watashi-no-kawaii-ga-tsuujinai/chap-95/1023799",
+        "https://www.nettruyenus.com/truyen-tranh/cuon-sach-cua-lagier/chap-77/1062446",
     )
     .await
     .unwrap();
     dbg!(&chapter);
-    assert!(chapter.manga.to_lowercase().contains("kuroiwa"));
-    assert!(chapter.chapter.contains("95"));
+    assert!(chapter.manga.to_lowercase().contains("lagier"));
+    assert!(chapter.chapter.contains("77"));
     assert!(!chapter.pages.is_empty());
 }
 
 #[cfg(test)]
 #[tokio::test]
-async fn test_build_nettruyenhd_chapter() {
+async fn test_build_nettruyenco_chapter() {
     let chapter = NettruyenChapter::from_url(
-        "https://nettruyenhd.com/truyen-tranh/kuroiwa-medaka-ni-watashi-no-kawaii-ga-tsuujinai/chapter-95/1023799",
+        "https://nettruyenco.vn/truyen-tranh/grand-blue-co-gai-thich-lan/chuong-85/749049",
     )
     .await
     .unwrap();
     dbg!(&chapter);
-    assert!(chapter.manga.to_lowercase().contains("kuroiwa"));
-    assert!(chapter.chapter.contains("95"));
+    assert!(chapter.manga.to_lowercase().contains("grand blue"));
+    assert!(chapter.chapter.contains("85"));
     assert!(!chapter.pages.is_empty());
 }

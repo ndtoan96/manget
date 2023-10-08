@@ -3,7 +3,6 @@ mod mangadex;
 mod mangapark;
 mod nettruyen;
 mod toptruyen;
-mod truyenqq;
 mod truyentranhtuan;
 
 use log::info;
@@ -54,8 +53,6 @@ pub enum ChapterError {
     MangaParkError(#[from] mangapark::MangaParkError),
     #[error(transparent)]
     MangadexError(#[from] mangadex::MangadexError),
-    #[error(transparent)]
-    TruyenqqError(#[from] truyenqq::TruyenqqError),
     #[error(transparent)]
     TruyenTranhTuanError(#[from] truyentranhtuan::TruyenTranhTuanError),
     #[error(transparent)]
@@ -136,8 +133,8 @@ pub async fn get_chapter(
     match url.domain() {
         Some("mangapark.net") => Ok(Box::new(mangapark::MangaParkChapter::from_url(url).await?)),
         Some("mangadex.org") => Ok(Box::new(mangadex::MangadexChapter::from_url(url).await?)),
-        Some("truyenqq.com.vn") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
-        Some("truyenqqne.com") => Ok(Box::new(truyenqq::TruyenqqChapter::from_url(url).await?)),
+        Some("truyenqq.com.vn") => Ok(Box::new(nettruyen::NettruyenChapter::from_url(url).await?)),
+        Some("truyenqqne.com") => Ok(Box::new(nettruyen::NettruyenChapter::from_url(url).await?)),
         Some(x) if x.contains("blogtruyen") => Ok(Box::new(
             blogtruyen::BlogTruyenChapter::from_url(url).await?,
         )),

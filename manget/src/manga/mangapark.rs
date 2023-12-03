@@ -1,6 +1,6 @@
 use regex::Regex;
 use reqwest::IntoUrl;
-use serde::Deserialize;
+use scraper::{Html, Selector};
 
 use crate::{download::DownloadItem, manga::Chapter};
 
@@ -21,13 +21,6 @@ pub struct MangaParkChapter {
     pages: Vec<DownloadItem>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ChapterDownloadInfo {
-    http_lis: Vec<String>,
-    word_lis: Vec<String>,
-}
-
 impl MangaParkChapter {
     pub async fn from_url(url: impl IntoUrl) -> Result<Self> {
         let url = url.into_url()?;
@@ -37,16 +30,13 @@ impl MangaParkChapter {
             .text()
             .await?;
         let download_items = get_chapter_download_info(&html)?;
-        let (title, chapter) = get_title_and_chapter_name(&html);
-        match title {
-            Some(t) => Ok(Self {
-                url: url.as_str().to_string(),
-                manga_title: t,
-                chapter,
-                pages: download_items,
-            }),
-            None => Err(MangaParkError::ParseError),
-        }
+        let (title, chapter) = get_title_and_chapter_name(&html)?;
+        Ok(Self {
+            url: url.as_str().to_string(),
+            manga_title: title,
+            chapter: Some(chapter),
+            pages: download_items,
+        })
     }
 }
 
@@ -68,46 +58,39 @@ impl Chapter for MangaParkChapter {
     }
 }
 
-fn get_title_and_chapter_name(html: &str) -> (Option<String>, Option<String>) {
-    let pattern = Regex::new(
-        r"<title>(?P<title>.*) - (?P<chapter>.*) - Share Any Manga at MangaPark</title>",
-    )
-    .unwrap();
-    match pattern.captures(html) {
-        None => (None, None),
-        Some(cap) => (
-            cap.name("title")
-                .map(|x| x.as_str())
-                .map(|x| html_escape::decode_html_entities(x).to_string()),
-            cap.name("chapter")
-                .map(|x| x.as_str())
-                .map(|x| html_escape::decode_html_entities(x).to_string()),
-        ),
-    }
+fn get_title_and_chapter_name(html: &str) -> Result<(String, String)> {
+    let doc = Html::parse_document(html);
+    let title_selector = Selector::parse("h3 > a[href^=\"/title\"]").unwrap();
+    let chapter_selector = Selector::parse("h6 > a[href^=\"/title\"]").unwrap();
+    let title = doc
+        .select(&title_selector)
+        .next()
+        .ok_or(MangaParkError::ParseError)?
+        .text()
+        .collect::<Vec<&str>>()
+        .join("");
+    let chapter = doc
+        .select(&chapter_selector)
+        .next()
+        .ok_or(MangaParkError::ParseError)?
+        .text()
+        .collect::<Vec<&str>>()
+        .join("");
+    Ok((title, chapter))
 }
 
 fn get_chapter_download_info(html: &str) -> Result<Vec<DownloadItem>> {
-    let pattern = Regex::new(r#"\{"httpLis".*?\}"#).unwrap();
-    let download_info_raw = pattern
-        .find(html)
-        .ok_or(MangaParkError::ParseError)?
-        .as_str();
-    let download_info: ChapterDownloadInfo =
-        serde_json::from_str(download_info_raw).map_err(|_| MangaParkError::ParseError)?;
-    let mut download_items = Vec::new();
-    for (index, (url, params)) in download_info
-        .http_lis
-        .iter()
-        .zip(download_info.word_lis.iter())
-        .enumerate()
-    {
-        let complete_url = format!("{url}?{params}");
-        download_items.push(DownloadItem::new(
-            &complete_url,
-            Some(&format!("page_{index:03}")),
-        ));
+    let pattern = Regex::new(r"https://.*?\?acc.*?exp=\d+").unwrap();
+    let mut items = Vec::new();
+    let mut cnt = 0;
+    for cap in pattern.captures_iter(html) {
+        let url = cap.get(0).ok_or(MangaParkError::ParseError)?.as_str();
+        if url.contains("/comic/") {
+            cnt += 1;
+            items.push(DownloadItem::new(url, Some(format!("page_{:03}", cnt))));
+        }
     }
-    Ok(download_items)
+    Ok(items)
 }
 
 #[cfg(test)]
@@ -125,10 +108,10 @@ mod test {
         .await
         .unwrap();
         assert_eq!(
-            get_title_and_chapter_name(&html),
+            get_title_and_chapter_name(&html).unwrap(),
             (
-                Some(String::from("Mato Seihei no Slave")),
-                Some(String::from("Vol.13 Ch.106")),
+                String::from("Mato Seihei no Slave"),
+                String::from("Vol.13 Ch.106: Bell's Tears"),
             )
         );
 
@@ -141,10 +124,10 @@ mod test {
         .await
         .unwrap();
         assert_eq!(
-            get_title_and_chapter_name(&html),
+            get_title_and_chapter_name(&html).unwrap(),
             (
-                Some(String::from("Koi Shita no de, Haishin Shite Mita")),
-                Some(String::from("Ch.057")),
+                String::from("Koi Shita no de, Haishin Shite Mita"),
+                String::from("Ch.057"),
             )
         );
     }

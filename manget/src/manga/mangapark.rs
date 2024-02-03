@@ -80,17 +80,22 @@ fn get_title_and_chapter_name(html: &str) -> Result<(String, String)> {
 }
 
 fn get_chapter_download_info(html: &str) -> Result<Vec<DownloadItem>> {
-    let pattern = Regex::new(r"https://.*?\?acc.*?exp=\d+").unwrap();
-    let mut items = Vec::new();
-    let mut cnt = 0;
-    for cap in pattern.captures_iter(html) {
-        let url = cap.get(0).ok_or(MangaParkError::ParseError)?.as_str();
-        if url.contains("/comic/") {
-            cnt += 1;
-            items.push(DownloadItem::new(url, Some(format!("page_{:03}", cnt))));
-        }
-    }
-    Ok(items)
+    let pattern = Regex::new(r#""/title/[^"]+",(?:"https://[^"]+",)+"#).unwrap();
+    let captured = pattern
+        .captures(html)
+        .ok_or(MangaParkError::ParseError)?
+        .get(0)
+        .ok_or(MangaParkError::ParseError)?
+        .as_str();
+    let download_items = captured
+        .split(',')
+        .skip(1)
+        .take_while(|s| !s.is_empty())
+        .map(|s| s.trim_start_matches('"').trim_end_matches('"'))
+        .enumerate()
+        .map(|(i, url)| DownloadItem::new(url, Some(format!("page_{:03}", i))))
+        .collect();
+    Ok(download_items)
 }
 
 #[cfg(test)]
@@ -130,5 +135,21 @@ mod test {
                 String::from("Ch.057"),
             )
         );
+    }
+
+    #[tokio::test]
+    async fn test_get_download_info() {
+        let html = reqwest::get(
+            "https://mangapark.net/title/74968-mato-seihei-no-slave/7968180-en-vol.13-ch.106",
+        )
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+
+        let download_info = get_chapter_download_info(&html).unwrap();
+        dbg!(&download_info);
+        assert!(download_info.len() > 10);
     }
 }

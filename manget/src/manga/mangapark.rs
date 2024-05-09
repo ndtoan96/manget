@@ -80,7 +80,7 @@ fn get_title_and_chapter_name(html: &str) -> Result<(String, String)> {
 }
 
 fn get_chapter_download_info(html: &str) -> Result<Vec<DownloadItem>> {
-    let pattern = Regex::new(r#""/title/[^"]+",(?:"https://[^"]+",)+"#).unwrap();
+    let pattern = Regex::new(r#""/title/[^"]+",(?:"https://[^"]+\.[a-z]{3,4}",)+"#).unwrap();
     let captured = pattern
         .captures(html)
         .ok_or(MangaParkError::ParseError)?

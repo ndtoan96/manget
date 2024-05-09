@@ -1,8 +1,9 @@
 [package]
 name = "manget"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2021"
 authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,5 +21,10 @@ serde_json = "1.0.96"
 simple_logger = "4.1.0"
 tempfile = "3.5.0"
 thiserror = "1.0.40"
-tokio = { version = "1.28.1", features = ["macros", "rt-multi-thread", "time", "fs"] }
+tokio = { version = "1.28.1", features = [
+  "macros",
+  "rt-multi-thread",
+  "time",
+  "fs",
+] }
 zip = "0.6.6"

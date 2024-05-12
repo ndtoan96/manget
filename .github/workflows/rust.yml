@@ -20,4 +20,6 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       # toptruyen seems to block abroad ip, so skip it in github workflow. NettruyenHD server is unstable, skip it too.
-      run: cargo test --verbose -- --skip toptruyen --skip nettruyenhd
+      run: |
+        cargo test mangadex
+        cargo test mangapark

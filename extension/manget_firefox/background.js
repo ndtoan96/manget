@@ -14,18 +14,30 @@ SUPPORTED_SITE_PATTERNS = [
     "*://nettruyenco.vn/truyen-tranh/*/*/*"
 ];
 
+// BASE_URL = "http://localhost:8080"
 BASE_URL = "https://manget.fly.dev"
 
 async function downloadChapter(url) {
-    let res = await fetch(BASE_URL + "/get_chapter_info", {method: "POST", body: JSON.stringify({url: url})});
-    let body = await res.json();
-    await browser.downloads.download({
-        url: BASE_URL + "/download",
+    let res = await fetch(BASE_URL + "/get_chapter_info", {
         method: "POST",
-        headers: [{ name: "content-type", value: "application/json" }],
-        body: JSON.stringify({ url }),
-        filename: body.chapter_name,
-    });
+        headers: {
+            "content-type": "application/json",
+        },
+        body: JSON.stringify({ url: url })
+    },
+    );
+    if (res.ok) {
+        let body = await res.json();
+        await browser.downloads.download({
+            url: BASE_URL + "/download",
+            method: "POST",
+            headers: [{ name: "content-type", value: "application/json" }],
+            body: JSON.stringify({ url }),
+            filename: body.chapter_name + ".cbz",
+        });
+    } else {
+        console.error(`Response status: ${res.statusText}. Response body: ${await res.text()}`)
+    }
 }
 
 browser.runtime.onInstalled.addListener(() => {

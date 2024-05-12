@@ -18,5 +18,10 @@
   ],
   "host_permissions": [
     "https://manget.fly.dev/*"
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "manget@ndtoan96.github.com"
+    }
+  }
 }

@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::http::header;
 use actix_web::{middleware::Logger, post, App, HttpServer};
 use actix_web::{web, HttpResponse, Responder, ResponseError};
@@ -68,8 +69,10 @@ async fn main() -> Result<(), std::io::Error> {
         .init();
 
     HttpServer::new(|| {
+        let cors = Cors::default().allow_any_origin();
         App::new()
             .wrap(Logger::default())
+            .wrap(cors)
             .service(download)
             .service(chapter_info)
     })

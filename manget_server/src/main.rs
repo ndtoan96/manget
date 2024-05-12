@@ -71,8 +71,8 @@ async fn main() -> Result<(), std::io::Error> {
     HttpServer::new(|| {
         let cors = Cors::default()
             .allow_any_origin()
-            .send_wildcard()
-            .allowed_methods(["GET", "POST", "OPTIONS"]);
+            .allowed_methods(["GET", "POST", "OPTIONS"])
+            .allowed_headers([header::ACCEPT, header::CONTENT_TYPE]);
         App::new()
             .wrap(Logger::default())
             .wrap(cors)

@@ -42,7 +42,7 @@ async function downloadChapter(url) {
 
 browser.runtime.onInstalled.addListener(() => {
     // add context menu on chapter page
-    browser.menus.create({
+    browser.contextMenus.create({
         id: "chapter_page_download",
         title: "Download chapter",
         contexts: ['page'],
@@ -50,7 +50,7 @@ browser.runtime.onInstalled.addListener(() => {
     });
 
     // add context menu on chapter link
-    browser.menus.create({
+    browser.contextMenus.create({
         id: "chapter_link_download",
         title: "Download chapter",
         contexts: ['link'],
@@ -59,7 +59,7 @@ browser.runtime.onInstalled.addListener(() => {
 });
 
 // add context menu onclick event
-browser.menus.onClicked.addListener(async (info, tab) => {
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
     switch (info.menuItemId) {
         case "chapter_page_download": {
             await downloadChapter(info.pageUrl);

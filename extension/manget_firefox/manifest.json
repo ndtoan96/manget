@@ -1,7 +1,7 @@
 {
   "name": "Manget",
   "description": "Download manga chapter from mangadex and some other websites",
-  "version": "1.2",
+  "version": "1.4",
   "manifest_version": 3,
   "icons": {
     "16": "./icons/mangadex_icon.svg",
@@ -13,7 +13,7 @@
     "scripts": ["background.js"]
   },
   "permissions": [
-    "menus",
+    "contextMenus",
     "downloads"
   ],
   "host_permissions": [

@@ -40,22 +40,20 @@ async function downloadChapter(url) {
     }
 }
 
-browser.runtime.onInstalled.addListener(() => {
-    // add context menu on chapter page
-    browser.contextMenus.create({
-        id: "chapter_page_download",
-        title: "Download chapter",
-        contexts: ['page'],
-        documentUrlPatterns: SUPPORTED_SITE_PATTERNS,
-    });
+// add context menu on chapter page
+browser.contextMenus.create({
+    id: "chapter_page_download",
+    title: "Download chapter",
+    contexts: ['page'],
+    documentUrlPatterns: SUPPORTED_SITE_PATTERNS,
+});
 
-    // add context menu on chapter link
-    browser.contextMenus.create({
-        id: "chapter_link_download",
-        title: "Download chapter",
-        contexts: ['link'],
-        targetUrlPatterns: SUPPORTED_SITE_PATTERNS,
-    });
+// add context menu on chapter link
+browser.contextMenus.create({
+    id: "chapter_link_download",
+    title: "Download chapter",
+    contexts: ['link'],
+    targetUrlPatterns: SUPPORTED_SITE_PATTERNS,
 });
 
 // add context menu onclick event

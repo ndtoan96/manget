@@ -1362,7 +1362,7 @@ checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 
 [[package]]
 name = "manget"
-version = "0.7.3"
+version = "0.7.4"
 dependencies = [
  "futures",
  "html-escape",
@@ -1383,7 +1383,7 @@ dependencies = [
 
 [[package]]
 name = "manget_cli"
-version = "0.7.1"
+version = "0.7.0"
 dependencies = [
  "clap",
  "env_logger",

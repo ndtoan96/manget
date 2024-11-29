@@ -100,9 +100,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 .service_fn(download_one);
 
             let urls: Box<dyn Iterator<Item = &str>> = if args.batch_args.reverse {
-                Box::new(content.lines().rev())
+                Box::new(content.trim().lines().rev())
             } else {
-                Box::new(content.lines())
+                Box::new(content.trim().lines())
             };
 
             let mut downloaded_paths = Vec::new();

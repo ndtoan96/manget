@@ -34,13 +34,13 @@ impl NettruyenChapter {
         let title_selector = Selector::parse("h1.txt-primary").unwrap();
 
         let h1_elm = html
-        .select(&title_selector)
-        .next()
-        .ok_or(NettruyenError::ParseError("cannot find title"))?;
+            .select(&title_selector)
+            .next()
+            .ok_or(NettruyenError::ParseError("cannot find title"))?;
         let mut text_iter = h1_elm.text();
 
         let mut manga = String::new();
-        let mut chapter =  String::new();
+        let mut chapter = String::new();
         // find manga title
         for _ in 0..10 {
             if let Some(s) = text_iter.next() {
@@ -73,6 +73,8 @@ impl NettruyenChapter {
                 src = s;
             } else if let Some(s) = img_elem.value().attr("data-sv1") {
                 src = s;
+            } else if let Some(s) = img_elem.value().attr("data-src") {
+                src = s;
             } else {
                 continue;
             }
@@ -88,7 +90,13 @@ impl NettruyenChapter {
                     format!("https:{}", x)
                 }
             });
-            let ext = if src.contains(".png") { "png" } else { "jpg" };
+            let ext = if src.contains(".png") {
+                "png"
+            } else if src.contains(".webp") {
+                "webp"
+            } else {
+                "jpg"
+            };
             pages.push(
                 DownloadItem::new(src, Some(&format!("page_{:02}.{}", i, ext))).add_option_url(alt),
             );

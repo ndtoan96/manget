@@ -9,7 +9,10 @@ authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 [dependencies]
 actix-cors = "0.7.0"
 actix-web = "4.3.1"
+epub-builder = "0.7.4"
 manget = { version = "0.*", path = "../manget" }
+sanitize-filename = "0.6.0"
+scraper = "0.22.0"
 serde = { version = "1.0.163", features = ["derive"] }
 tempfile = "3.5.0"
 thiserror = "1.0.40"

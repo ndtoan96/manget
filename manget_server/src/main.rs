@@ -1,12 +1,13 @@
+mod novel;
+
 use axum::http::header::InvalidHeaderValue;
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
-use axum::{debug_handler, Json, Router};
+use axum::{Json, Router};
 use manget::manga;
 use manget::manga::ChapterError;
 use sanitize_filename::sanitize;
-use scraper::Selector;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::ops::Deref;
@@ -47,7 +48,7 @@ impl IntoResponse for AppError {
 async fn novel(
     Json(NovelDownloadRequest { title, content }): Json<NovelDownloadRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let data = convert_chapter_html_to_epub(&title, &content)
+    let data = novel::convert_chapter_html_to_epub(&title, &content)
         .map_err(|e| AppError::EpubError(e.to_string()))?;
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -58,7 +59,6 @@ async fn novel(
     Ok((headers, data))
 }
 
-#[debug_handler]
 async fn download(json: Json<DownloadRequest>) -> Result<impl IntoResponse, AppError> {
     let (file_name, file_path) = download_chapter_from_url(&json.url).await?;
     let mut data = Vec::new();
@@ -96,6 +96,15 @@ async fn chapter_info(json: Json<DownloadRequest>) -> Result<impl IntoResponse, 
     Ok(Json(response_body))
 }
 
+async fn download_chapter_from_url(url: &str) -> Result<(String, PathBuf), ChapterError> {
+    let chapter = manga::get_chapter(url).await?;
+    let random_file_name = Uuid::new_v4().to_string();
+    let zip_path = tempfile::tempdir()?.into_path().join(random_file_name);
+    let file_path = manga::download_chapter_as_cbz(chapter.deref(), Some(zip_path)).await?;
+    let chapter_full_name = chapter.full_name();
+    Ok((format!("{chapter_full_name}.cbz"), file_path))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -112,64 +121,4 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn download_chapter_from_url(url: &str) -> Result<(String, PathBuf), ChapterError> {
-    let chapter = manga::get_chapter(url).await?;
-    let random_file_name = Uuid::new_v4().to_string();
-    let zip_path = tempfile::tempdir()?.into_path().join(random_file_name);
-    let file_path = manga::download_chapter_as_cbz(chapter.deref(), Some(zip_path)).await?;
-    let chapter_full_name = chapter.full_name();
-    Ok((format!("{chapter_full_name}.cbz"), file_path))
-}
-
-fn convert_chapter_html_to_epub(title: &str, content: &str) -> epub_builder::Result<Vec<u8>> {
-    let processed_content = process_chapter_content(content);
-    let xhtml = format!(
-        r#"<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html>
-
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
-<head>
-  <title>{title}</title>
-</head>
-
-<body>
-{processed_content}
-</body>
-</html>
-"#
-    );
-    let mut output = Vec::new();
-    epub_builder::EpubBuilder::new(epub_builder::ZipLibrary::new()?)?
-        .metadata("title", title)?
-        .epub_version(epub_builder::EpubVersion::V30)
-        .add_content(
-            epub_builder::EpubContent::new("chapter.xhtml", xhtml.as_bytes())
-                .title(title)
-                .reftype(epub_builder::ReferenceType::Text),
-        )?
-        .generate(&mut output)?;
-    Ok(output)
-}
-
-fn process_chapter_content(content: &str) -> String {
-    let html = scraper::Html::parse_fragment(content);
-    let selector = Selector::parse(".br-section > *").unwrap();
-    let texts: Vec<_> = html
-        .select(&selector)
-        .filter(|e| e.value().name() != "div")
-        .map(|e| e.html())
-        .map(|t| {
-            if t.starts_with("<img") {
-                t.replace(">", "/>")
-            } else {
-                t
-            }
-        })
-        .collect();
-    texts
-        .join("\n")
-        .replace("<br>", "<br/>")
-        .replace("<hr>", "<hr/>")
 }

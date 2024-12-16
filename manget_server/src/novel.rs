@@ -97,7 +97,6 @@ async fn extract_images(content: &str) -> Vec<Image> {
     for url in urls {
         let thread_tx = tx.clone();
         tokio::spawn(async move {
-            tracing::info!("Download {}", &url);
             let result = reqwest::get(&url).await;
             thread_tx.send((url, result)).unwrap();
         });
@@ -105,7 +104,6 @@ async fn extract_images(content: &str) -> Vec<Image> {
     drop(tx);
     let mut images = Vec::new();
     while let Some((url, result)) = rx.recv().await {
-        tracing::info!("Recieve url {}", &url);
         if let Ok(res) = result.and_then(|res| res.error_for_status()) {
             let mime_type = res
                 .headers()
@@ -130,6 +128,5 @@ async fn extract_images(content: &str) -> Vec<Image> {
             });
         }
     }
-    tracing::info!("DONE");
     images
 }

@@ -75,10 +75,7 @@ async fn download(json: Json<DownloadRequest>) -> Result<impl IntoResponse, AppE
     let mut headers = HeaderMap::new();
     headers.insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!(
-            "attachment; filename={}.epub",
-            sanitize(file_name)
-        ))?,
+        HeaderValue::from_str(&format!("attachment; filename={}", sanitize(file_name)))?,
     );
 
     Ok((headers, data))

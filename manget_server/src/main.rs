@@ -4,7 +4,7 @@ use axum::http::header::InvalidHeaderValue;
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::{debug_handler, Json, Router};
 use manget::manga;
 use manget::manga::ChapterError;
 use sanitize_filename::sanitize;
@@ -45,10 +45,12 @@ impl IntoResponse for AppError {
     }
 }
 
+#[debug_handler]
 async fn novel(
     Json(NovelDownloadRequest { title, content }): Json<NovelDownloadRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let data = novel::convert_chapter_html_to_epub(&title, &content)
+        .await
         .map_err(|e| AppError::EpubError(e.to_string()))?;
     let mut headers = HeaderMap::new();
     headers.insert(

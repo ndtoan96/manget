@@ -79,7 +79,8 @@ impl DownloadOptions {
     }
 
     pub fn add_url(&mut self, url: &str) -> &mut Self {
-        self.items.push(DownloadItem::new(url, None as Option<String>));
+        self.items
+            .push(DownloadItem::new(url, None as Option<String>));
         self
     }
 
@@ -102,7 +103,10 @@ impl DownloadOptions {
     }
 
     pub fn add_urls<'a>(mut self, urls: impl Iterator<Item = &'a str>) {
-        urls.for_each(|url| self.items.push(DownloadItem::new(url, None as Option<String>)));
+        urls.for_each(|url| {
+            self.items
+                .push(DownloadItem::new(url, None as Option<String>))
+        });
     }
 
     pub fn clear_download_items(&mut self) {
@@ -128,9 +132,10 @@ pub async fn download(options: &DownloadOptions) -> Vec<Result<PathBuf>> {
     let downloads: Vec<_> = items
         .iter()
         .map(|item| {
-            download_one_item(item, path, referer).then(|result| async {
+            let url = item.url().to_string();
+            download_one_item(item, path, referer).then(|result| async move {
                 match &result {
-                    Ok(p) => info!("Downloaded: {} -> {}", item.url(), p.display()),
+                    Ok(p) => info!("Downloaded: {} -> {}", url, p.display()),
                     Err(e) => error!("{e}"),
                 }
                 result

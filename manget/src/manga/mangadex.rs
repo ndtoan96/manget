@@ -96,7 +96,7 @@ async fn get_chapter_info(
     }
 
     let response = reqwest::Client::new()
-        .get(&format!(
+        .get(format!(
             "https://api.mangadex.org/chapter/{chapter_id}?includes[]=manga"
         ))
         .header("User-Agent", "Manget")

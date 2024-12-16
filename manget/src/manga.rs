@@ -17,7 +17,7 @@ use zip::ZipWriter;
 
 use crate::download::{download, DownloadError, DownloadItem, DownloadOptions};
 
-pub trait Chapter {
+pub trait Chapter: Sync + Send {
     /// Get the URL of the chapter
     fn url(&self) -> String;
     /// Get the name of the manga to which this chapter belongs

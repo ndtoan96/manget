@@ -1,7 +1,8 @@
-use actix_cors::Cors;
-use actix_web::http::header;
-use actix_web::{middleware::Logger, post, App, HttpServer};
-use actix_web::{web, HttpResponse, Responder, ResponseError};
+use axum::http::header::InvalidHeaderValue;
+use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
+use axum::{debug_handler, Json, Router};
 use manget::manga;
 use manget::manga::ChapterError;
 use sanitize_filename::sanitize;
@@ -10,6 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::ops::Deref;
 use std::path::PathBuf;
+use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -29,32 +32,34 @@ enum AppError {
     Chapter(#[from] manga::ChapterError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[error("$0")]
+    #[error("{0}")]
     EpubError(String),
+    #[error(transparent)]
+    HeaderError(#[from] InvalidHeaderValue),
 }
 
-impl ResponseError for AppError {}
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+    }
+}
 
-#[post("/novel")]
 async fn novel(
-    web::Json(NovelDownloadRequest { title, content }): web::Json<NovelDownloadRequest>,
-) -> Result<HttpResponse, AppError> {
+    Json(NovelDownloadRequest { title, content }): Json<NovelDownloadRequest>,
+) -> Result<impl IntoResponse, AppError> {
     let data = convert_chapter_html_to_epub(&title, &content)
         .map_err(|e| AppError::EpubError(e.to_string()))?;
-    Ok(HttpResponse::Ok()
-        .content_type("application/octet-stream")
-        .append_header(header::ContentDisposition {
-            disposition: header::DispositionType::Attachment,
-            parameters: vec![header::DispositionParam::Filename(sanitize(format!(
-                "{}.epub",
-                title
-            )))],
-        })
-        .body(data))
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&format!("attachment; filename={}.epub", sanitize(title)))?,
+    );
+
+    Ok((headers, data))
 }
 
-#[post("/download")]
-async fn download(json: web::Json<DownloadRequest>) -> Result<HttpResponse, AppError> {
+#[debug_handler]
+async fn download(json: Json<DownloadRequest>) -> Result<impl IntoResponse, AppError> {
     let (file_name, file_path) = download_chapter_from_url(&json.url).await?;
     let mut data = Vec::new();
 
@@ -65,14 +70,16 @@ async fn download(json: web::Json<DownloadRequest>) -> Result<HttpResponse, AppE
         let _ = std::fs::remove_dir(p);
     }
 
-    // return the data
-    Ok(HttpResponse::Ok()
-        .content_type("application/octet-stream")
-        .append_header(header::ContentDisposition {
-            disposition: header::DispositionType::Attachment,
-            parameters: vec![header::DispositionParam::Filename(file_name)],
-        })
-        .body(data))
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&format!(
+            "attachment; filename={}.epub",
+            sanitize(file_name)
+        ))?,
+    );
+
+    Ok((headers, data))
 }
 
 #[derive(Debug, Serialize)]
@@ -80,37 +87,31 @@ struct ChapterInfoResponseBody {
     chapter_name: String,
 }
 
-#[post("/get_chapter_info")]
-async fn chapter_info(json: web::Json<DownloadRequest>) -> Result<impl Responder, AppError> {
+async fn chapter_info(json: Json<DownloadRequest>) -> Result<impl IntoResponse, AppError> {
     let chapter = manga::get_chapter(&json.url).await?;
     let chapter_full_name = chapter.full_name();
     let response_body = ChapterInfoResponseBody {
         chapter_name: chapter_full_name.trim().to_string(),
     };
-    Ok(web::Json(response_body))
+    Ok(Json(response_body))
 }
 
-#[actix_web::main]
-async fn main() -> Result<(), std::io::Error> {
+#[tokio::main]
+async fn main() {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    HttpServer::new(|| {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allowed_methods(["GET", "POST", "OPTIONS"])
-            .allowed_headers([header::ACCEPT, header::CONTENT_TYPE]);
-        App::new()
-            .wrap(Logger::default())
-            .wrap(cors)
-            .service(download)
-            .service(chapter_info)
-            .service(novel)
-    })
-    .bind(("0.0.0.0", 8080))?
-    .run()
-    .await
+    let app = Router::new()
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
+        .route("/", get(|| async { "Toan's server" }))
+        .route("/get_chapter_info", get(chapter_info))
+        .route("/download", post(download))
+        .route("/novel", post(novel));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn download_chapter_from_url(url: &str) -> Result<(String, PathBuf), ChapterError> {

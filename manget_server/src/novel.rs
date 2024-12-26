@@ -1,5 +1,6 @@
 use std::io::Cursor;
 
+use image::ImageReader;
 use reqwest::Url;
 use scraper::{Html, Selector};
 
@@ -105,14 +106,15 @@ async fn extract_images(content: &str) -> Vec<Image> {
     let mut images = Vec::new();
     while let Some((url, result)) = rx.recv().await {
         if let Ok(res) = result.and_then(|res| res.error_for_status()) {
-            let mime_type = res
-                .headers()
-                .get("content-type")
+            let tmp_data = res.bytes().await.unwrap().to_vec();
+            let img = ImageReader::new(Cursor::new(tmp_data))
+                .with_guessed_format()
                 .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-            let data = res.bytes().await.unwrap().to_vec();
+                .decode()
+                .unwrap();
+            let mut data = Vec::new();
+            img.write_to(&mut Cursor::new(&mut data), image::ImageFormat::Jpeg)
+                .unwrap();
             let name = Url::parse(&url)
                 .unwrap()
                 .path_segments()
@@ -122,7 +124,7 @@ async fn extract_images(content: &str) -> Vec<Image> {
                 .to_string();
             images.push(Image {
                 url,
-                mime_type,
+                mime_type: "image/jpeg".to_string(),
                 data,
                 name,
             });

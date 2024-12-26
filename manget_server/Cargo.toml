@@ -1,6 +1,6 @@
 [package]
 name = "manget_server"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 
@@ -9,6 +9,7 @@ authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 [dependencies]
 axum = { version = "0.7.9", features = ["macros"] }
 epub-builder = "0.7.4"
+image = "0.25.5"
 manget = { version = "0.*", path = "../manget" }
 reqwest = "0.12.9"
 sanitize-filename = "0.6.0"

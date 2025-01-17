@@ -114,7 +114,7 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .route("/", get(|| async { "Toan's server" }))
-        .route("/get_chapter_info", get(chapter_info))
+        .route("/get_chapter_info", post(chapter_info))
         .route("/download", post(download))
         .route("/novel", post(novel));
 

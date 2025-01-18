@@ -1,5 +1,7 @@
 mod novel;
 
+use axum::body::Bytes;
+use axum::extract::Request;
 use axum::http::header::InvalidHeaderValue;
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
@@ -111,12 +113,12 @@ async fn main() {
         .init();
 
     let app = Router::new()
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
         .route("/", get(|| async { "Toan's server" }))
         .route("/get_chapter_info", post(chapter_info))
         .route("/download", post(download))
-        .route("/novel", post(novel));
+        .route("/novel", post(novel))
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, app).await.unwrap();

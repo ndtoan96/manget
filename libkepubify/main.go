@@ -5,7 +5,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"fmt"
 	"unsafe"
 
 	"github.com/pgaskin/kepubify/v4/kepub"

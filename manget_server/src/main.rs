@@ -1,10 +1,12 @@
 mod novel;
 
+use axum::extract::State;
 use axum::http::header::InvalidHeaderValue;
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{debug_handler, Json, Router};
+use libloading::{Library, Symbol};
 use manget::manga;
 use manget::manga::ChapterError;
 use sanitize_filename::sanitize;
@@ -12,9 +14,13 @@ use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
+
+type BytesPtr = *const u8;
+type ConvertFuncType = unsafe extern "C" fn(BytesPtr, isize, BytesPtr, isize) -> isize;
 
 #[derive(Debug, Deserialize)]
 struct DownloadRequest {
@@ -47,18 +53,45 @@ impl IntoResponse for AppError {
 
 #[debug_handler]
 async fn novel(
+    State(convert): State<Symbol<'static, ConvertFuncType>>,
     Json(NovelDownloadRequest { title, content }): Json<NovelDownloadRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let data = novel::convert_chapter_html_to_epub(&title, &content)
         .await
         .map_err(|e| AppError::EpubError(e.to_string()))?;
+    let kepub_data = unsafe {
+        let buf_size = data.len() * 2;
+        let mut buffer: Vec<u8> = Vec::with_capacity(buf_size);
+        let n = convert(
+            data.as_ptr(),
+            data.len() as isize,
+            buffer.as_mut_ptr(),
+            buf_size as isize,
+        );
+        if n == -1 {
+            None
+        } else {
+            buffer.set_len(n as usize);
+            Some(buffer)
+        }
+    };
     let mut headers = HeaderMap::new();
-    headers.insert(
-        header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename={}.epub", sanitize(title)))?,
-    );
-
-    Ok((headers, data))
+    if let Some(d) = kepub_data {
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            HeaderValue::from_str(&format!(
+                "attachment; filename={}.kepub.epub",
+                sanitize(title)
+            ))?,
+        );
+        Ok((headers, d))
+    } else {
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            HeaderValue::from_str(&format!("attachment; filename={}.epub", sanitize(title)))?,
+        );
+        Ok((headers, data))
+    }
 }
 
 async fn download(json: Json<DownloadRequest>) -> Result<impl IntoResponse, AppError> {
@@ -104,17 +137,27 @@ async fn download_chapter_from_url(url: &str) -> Result<(String, PathBuf), Chapt
     Ok((format!("{chapter_full_name}.cbz"), file_path))
 }
 
+static KEPUBIFY_LIB: OnceLock<Library> = OnceLock::new();
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
+    let convert = unsafe {
+        KEPUBIFY_LIB
+            .get_or_init(|| libloading::Library::new("./libkepubify/kepubify.lib").unwrap())
+            .get::<unsafe extern "C" fn(BytesPtr, isize, BytesPtr, isize) -> isize>(b"Convert")
+            .unwrap()
+    };
+
     let app = Router::new()
         .route("/", get(|| async { "Toan's server" }))
         .route("/get_chapter_info", post(chapter_info))
         .route("/download", post(download))
         .route("/novel", post(novel))
+        .with_state(convert)
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
 

@@ -1632,6 +1632,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
+dependencies = [
+ "cfg-if",
+ "windows-targets 0.52.6",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1714,6 +1724,7 @@ dependencies = [
  "axum",
  "epub-builder",
  "image",
+ "libloading",
  "manget",
  "reqwest 0.12.9",
  "sanitize-filename 0.6.0",

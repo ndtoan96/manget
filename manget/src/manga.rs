@@ -5,12 +5,11 @@ mod nettruyen;
 mod toptruyen;
 mod truyentranhtuan;
 
+use image::ImageReader;
 use log::info;
 use reqwest::IntoUrl;
 use std::{
-    fmt::Display,
-    fs,
-    path::{Path, PathBuf},
+    fmt::Display, fs, io::{Cursor, Write}, path::{Path, PathBuf}
 };
 use zip::write::FileOptions;
 use zip::ZipWriter;
@@ -171,9 +170,20 @@ fn zip_folder<P: Into<PathBuf>>(
 
         if path.is_file() {
             let relative_path = path.strip_prefix(&folder_path).unwrap();
-            zip.start_file(relative_path.to_str().unwrap(), options)?;
-            let mut source_file = fs::File::open(path)?;
-            std::io::copy(&mut source_file, &mut zip)?;
+            if relative_path.extension().is_some_and(|e| e == "webp") {
+                zip.start_file(
+                    relative_path.with_extension("jpg").to_str().unwrap(),
+                    options,
+                )?;
+                let img = ImageReader::open(path)?.decode().unwrap();
+                let mut bytes = Vec::new();
+                img.write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Jpeg).unwrap();
+                zip.write_all(&bytes)?;
+            } else {
+                zip.start_file(relative_path.to_str().unwrap(), options)?;
+                let mut source_file = fs::File::open(path)?;
+                std::io::copy(&mut source_file, &mut zip)?;
+            }
         }
     }
 

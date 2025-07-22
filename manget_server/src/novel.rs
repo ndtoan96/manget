@@ -119,7 +119,7 @@ async fn extract_images(content: &str) -> Vec<Image> {
                 .unwrap()
                 .path_segments()
                 .unwrap()
-                .last()
+                .next_back()
                 .unwrap()
                 .to_string();
             images.push(Image {

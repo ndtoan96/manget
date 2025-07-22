@@ -10,6 +10,7 @@ authors = ["Nguyen Duc Toan <ntoan96@gmail.com>"]
 [dependencies]
 futures = { version = "0.3.28", features = ["futures-executor"] }
 html-escape = "0.2.13"
+image = "0.25.6"
 log = "0.4.17"
 mime = "0.3.17"
 regex = "1.8.1"

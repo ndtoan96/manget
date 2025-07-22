@@ -184,7 +184,7 @@ async fn download_one_url(
             .map_err(|_| DownloadError::InvalidUrl(url.to_string()))?
             .path_segments()
             .ok_or(DownloadError::InvalidUrl(url.to_string()))?
-            .last()
+            .next_back()
             .ok_or(DownloadError::InvalidUrl(url.to_string()))?
             .to_string(),
     };
